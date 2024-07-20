@@ -14,7 +14,10 @@ import { useState } from "react";
 import { nanoid } from "nanoid";
 import toast, { Toaster } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
-const NewRoomPageModal = () => {
+interface NewRoomPageModalProps {
+  isUserLoggedIn: boolean;
+}
+const NewRoomPageModal = ({ isUserLoggedIn }: NewRoomPageModalProps) => {
   const [roomId, setRoomId] = useState<string | null>("");
   const [username, setUsername] = useState<string | null>("");
   const navigate = useNavigate();
@@ -27,24 +30,30 @@ const NewRoomPageModal = () => {
       toast.error("Please enter room id and username");
       return;
     } else {
-      navigate(`/room/${roomId}`,{
-        state:{
-          username
-        }
+      navigate(`/room/${roomId}`, {
+        state: {
+          username,
+        },
       });
     }
   };
-  const EnterKey=(event:any)=>{
-    if(event.key=="Enter"){
+  const EnterKey = (event: any) => {
+    if (event.key == "Enter") {
       navigateToRoom();
     }
-  }
+  };
+  const navigateUserToLogin= () => {
+    if (!isUserLoggedIn) {
+      navigate("/login");
+      return;
+    }
+  };
   return (
     <div>
       <Toaster position="top-center" reverseOrder={false} />
       <Dialog>
         <DialogTrigger asChild>
-          <Button>Create new room</Button>
+          <Button onClick={navigateUserToLogin}>Create new room</Button>
         </DialogTrigger>
         <DialogContent className="sm:max-w-[425px] p-6 text-black dark:text-white">
           <DialogHeader>

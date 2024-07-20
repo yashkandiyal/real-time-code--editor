@@ -13,7 +13,10 @@ import { Input } from "../../shadcn/components/ui/input";
 import { Label } from "../../shadcn/components/ui/label";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-const ExistingRoomPageModal = () => {
+interface ExistingRoomPageModalProps {
+  isUserLoggedIn: boolean;
+}
+const ExistingRoomPageModal = ({isUserLoggedIn}:ExistingRoomPageModalProps) => {
   const [roomId, setRoomId] = useState<string | null>("");
   const [username, setUsername] = useState<string | null>("");
   const navigate = useNavigate();
@@ -25,15 +28,23 @@ const ExistingRoomPageModal = () => {
       navigate(`/room/${roomId}`, {
         state: {
           username,
+          roomId
         },
       });
     }
   };
+  //here we will check that if the user is not logged in then we will redirect the user to the login page
+  const navigateUserToLogin= () => {
+    if (!isUserLoggedIn) {
+      navigate("/login");
+      return;
+    }
+  }
   return (
     <div>
       <Dialog>
         <DialogTrigger asChild>
-          <Button>Join an existing Room</Button>
+          <Button onClick={navigateUserToLogin} >Join an existing Room</Button>
         </DialogTrigger>
         <DialogContent className="sm:max-w-[425px]  text-black dark:text-white">
           <DialogHeader>
