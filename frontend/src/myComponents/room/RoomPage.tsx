@@ -3,92 +3,181 @@ import EditorPage from "./EditorPage";
 import Footer from "./Footer";
 import Sidebar from "./Sidebar";
 import toast, { Toaster } from "react-hot-toast";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { io, Socket } from "socket.io-client";
 
 export default function Component() {
   const location = useLocation();
-  const { username } = location.state;
+  const navigate = useNavigate();
+  const { username, isAuthorr } = location.state;
   const roomId = location.pathname.split("/")[2];
   const socketRef = useRef<Socket | null>(null);
   const [participants, setParticipants] = useState<string[]>([]);
+  const [joinRequests, setJoinRequests] = useState<string[]>([]);
+  const [isAuthor, setIsAuthor] = useState<boolean>(isAuthorr);
+  const [isPending, setIsPending] = useState<boolean>(!isAuthorr);
+  const currentUsername = useRef<string>(username);
   useEffect(() => {
-    // Initialize socket connection
     const initSocket = async () => {
       const options = {
         forceNew: true,
         reconnectionAttempts: Infinity,
         timeout: 10000,
         transports: ["websocket"],
+        query: { username, isAuthor: isAuthorr },
       };
 
       const socket = io("http://localhost:3000", options);
       socketRef.current = socket;
 
-      // Emit joinRoom event
-      socket.emit("joinRoom", { roomId, username });
+      socket.emit("joinRoom", { roomId, username, isAuthor: isAuthorr });
 
-      // Set up event listeners
+      socket.on("currentParticipants", (participants: string[]) => {
+        setParticipants(participants);
+      });
+
+      socket.on("joinRequest", ({ username }) => {
+        if (isAuthor) {
+          setJoinRequests((prev) => [...prev, username]);
+        }
+      });
+
+      socket.on("joinRequestPending", () => {
+        if (!isAuthor) {
+          setIsPending(true);
+          toast.success(
+            "Your join request is pending approval from the author."
+          );
+        }
+      });
+
+      socket.on("joinRequestApproved", (approvedRoomId) => {
+        if (approvedRoomId === roomId && !isAuthor) {
+          setIsPending(false);
+          toast.success("Your join request has been approved.");
+        }
+      });
+
+      socket.on("joinRequestRejected", (rejectedRoomId) => {
+        if (rejectedRoomId === roomId && !isAuthor) {
+          setIsPending(false);
+          toast.error("Your join request has been rejected.");
+          navigate("/");
+        }
+      });
+
       socket.on("userJoined", ({ username }) => {
-        console.log("User joined", username);
-        setParticipants((prevParticipants) => [...prevParticipants, username]);
+        setParticipants((prev) => [...prev, username]);
         toast.success(`${username} has joined the room.`);
       });
 
       socket.on("userLeft", ({ username }) => {
-        console.log("User left", username);
-        setParticipants((prevParticipants) =>
-          prevParticipants.filter((p) => p !== username)
-        );
+        setParticipants((prev) => prev.filter((p) => p !== username));
         toast.error(`${username} has left the room.`);
       });
 
-      socket.on("connect_error", (error) => {
-        console.error("Connection error:", error);
+      socket.on("roomClosed", () => {
+        toast.error("The room has been closed.");
+        navigate("/");
+      });
+
+      socket.on("connect_error", () => {
         toast.error("Connection failed, retrying...");
+      });
+      socket.on("youWereRemoved", ({ roomId }) => {
+        toast.error("You have been removed from the room.");
+        navigate("/");
+      });
+
+      socket.on("userRemoved", ({ username }) => {
+        setParticipants((prev) => prev.filter((p) => p !== username));
+        toast.error(`${username} has been removed from the room.`);
+      });
+      socket.on("userLeftWillingly", ({ username }) => {
+        setParticipants((prev) => prev.filter((p) => p !== username));
+        if (username === currentUsername.current) {
+          toast.error("You left the room.");
+        } else {
+          toast.error(`${username} left the room.`);
+        }
       });
 
       socket.on("disconnect", () => {
-        console.log("Disconnected from server");
         toast.error("Disconnected from server");
+        if (isAuthor) {
+          socket.emit("closeRoom", { roomId });
+        }
       });
 
-      // Cleanup function
       return () => {
-        if (socketRef.current) {
-          socketRef.current.off("userJoined");
-          socketRef.current.off("userLeft");
-          socketRef.current.disconnect();
+        if (isAuthor) {
+          socket.emit("closeRoom", { roomId });
         }
+        socket.disconnect();
       };
     };
 
-    // Initialize socket and set up listeners
     initSocket();
 
-    // Cleanup on component unmount
     return () => {
       if (socketRef.current) {
-        socketRef.current.off("userJoined");
-        socketRef.current.off("userLeft");
+        if (isAuthor) {
+          socketRef.current.emit("closeRoom", { roomId });
+        }
         socketRef.current.disconnect();
       }
     };
-  }, [roomId, username]);
-  console.log("Participants:", participants);
-  
+  }, [roomId, username, navigate, isAuthorr]);
+  useEffect(() => {
+    currentUsername.current = username;
+  }, [username]);
+  const handleApprove = (username: string) => {
+    if (socketRef.current && isAuthor) {
+      socketRef.current.emit("approveJoinRequest", { roomId, username });
+      setJoinRequests((prev) => prev.filter((user) => user !== username));
+    }
+  };
+
+  const handleReject = (username: string) => {
+    if (socketRef.current && isAuthor) {
+      socketRef.current.emit("rejectJoinRequest", { roomId, username });
+      setJoinRequests((prev) => prev.filter((user) => user !== username));
+    }
+  };
+
+  const handleRemove = (username: string) => {
+    if (socketRef.current && isAuthor) {
+      socketRef.current.emit("removeParticipant", { roomId, username });
+    }
+  };
+  const leaveRoom = () => {
+    if (socketRef.current) {
+      socketRef.current.emit("leaveRoom", { roomId, username });
+    }
+  };
+  if (isPending) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        Waiting for approval to join the room...
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen w-full flex-col">
       <Toaster position="top-center" reverseOrder={false} />
       <main className="flex flex-1 overflow-hidden">
-        {/* Code editor */}
         <EditorPage />
-        {/* Sidebar */}
-        <Sidebar participants={participants} />
+        <Sidebar
+          participants={participants}
+          isAuthor={isAuthor}
+          joinRequests={joinRequests}
+          handleApprove={handleApprove}
+          handleReject={handleReject}
+          handleRemove={handleRemove}
+        />
       </main>
-      {/* Footer */}
-      <Footer />
+      <Footer leaveRoom={leaveRoom} />
     </div>
   );
 }

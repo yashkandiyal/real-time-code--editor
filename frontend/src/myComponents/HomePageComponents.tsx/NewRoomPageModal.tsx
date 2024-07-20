@@ -14,17 +14,31 @@ import { useState } from "react";
 import { nanoid } from "nanoid";
 import toast, { Toaster } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
+import { MdContentCopy } from "react-icons/md"; // Importing MdContentCopy icon
+
 interface NewRoomPageModalProps {
   isUserLoggedIn: boolean;
 }
+
 const NewRoomPageModal = ({ isUserLoggedIn }: NewRoomPageModalProps) => {
   const [roomId, setRoomId] = useState<string | null>("");
   const [username, setUsername] = useState<string | null>("");
   const navigate = useNavigate();
-  //This function is used to generate unique room id
+
+  // This function is used to generate unique room id
   const generateRoomId = () => {
     setRoomId(nanoid());
   };
+
+  // This function is used to copy the room ID to clipboard
+  const copyRoomIdToClipboard = () => {
+    if (roomId) {
+      navigator.clipboard.writeText(roomId).then(() => {
+        toast.success("Room ID copied to clipboard!");
+      });
+    }
+  };
+
   const navigateToRoom = () => {
     if (!roomId || !username) {
       toast.error("Please enter room id and username");
@@ -33,21 +47,25 @@ const NewRoomPageModal = ({ isUserLoggedIn }: NewRoomPageModalProps) => {
       navigate(`/room/${roomId}`, {
         state: {
           username,
+          isAuthorr: true,
         },
       });
     }
   };
+
   const EnterKey = (event: any) => {
-    if (event.key == "Enter") {
+    if (event.key === "Enter") {
       navigateToRoom();
     }
   };
-  const navigateUserToLogin= () => {
+
+  const navigateUserToLogin = () => {
     if (!isUserLoggedIn) {
       navigate("/login");
       return;
     }
   };
+
   return (
     <div>
       <Toaster position="top-center" reverseOrder={false} />
@@ -64,15 +82,29 @@ const NewRoomPageModal = ({ isUserLoggedIn }: NewRoomPageModalProps) => {
           </DialogHeader>
           <div className="grid gap-4 py-4 text-black dark:text-white">
             <div className="grid grid-cols-1 gap-4">
-              <Label htmlFor="roomId">Room Id</Label>
-              <Input id="roomId" placeholder="Enter Room Id" value={roomId!} />
+              <Label htmlFor="roomId">Room ID</Label>
+              <div className="flex items-center">
+                <Input
+                  id="roomId"
+                  placeholder="Enter Room ID"
+                  value={roomId || ""}
+                  readOnly
+                />
+                <Button
+                  variant="ghost"
+                  className="ml-2"
+                  onClick={copyRoomIdToClipboard}
+                >
+                  <MdContentCopy className="w-5 h-5" />
+                </Button>
+              </div>
             </div>
             <Button onClick={generateRoomId}>Generate Unique Room ID</Button>
             <div className="grid grid-cols-1 gap-4 text-black dark:text-white">
               <Label htmlFor="username">Username</Label>
               <Input
                 id="username"
-                value={username!}
+                value={username || ""}
                 placeholder="Enter your Username"
                 onChange={(e) => setUsername(e.target.value)}
                 onKeyUp={EnterKey}
