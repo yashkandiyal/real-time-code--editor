@@ -1,10 +1,46 @@
-import { Button } from '../../shadcn/components/ui/button';
-import { FaMicrophone, FaPlus } from 'react-icons/fa';
-import { Avatar, AvatarFallback, AvatarImage } from '../../shadcn/components/ui/avatar';
-import { Sheet, SheetContent, SheetTrigger } from '../../shadcn/components/ui/sheet';
-import { IoMenuSharp } from 'react-icons/io5';
+import { Button } from "../../shadcn/components/ui/button";
+import { FaMicrophone, FaPlus } from "react-icons/fa";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "../../shadcn/components/ui/avatar";
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+} from "../../shadcn/components/ui/sheet";
+import { IoMenuSharp } from "react-icons/io5";
+//participants coming from the props is an array
 
-const Sidebar = () => {
+interface Participants {
+  participants: string[];
+}
+interface participantsComponentProps {
+  username: string;
+}
+export const ParticipantsComponent = ({
+  username,
+}: participantsComponentProps) => {
+  return (
+    <>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Avatar className="h-8 w-8">
+            <AvatarImage src="/placeholder-user.jpg" />
+            <AvatarFallback>U1</AvatarFallback>
+          </Avatar>
+          <div className="text-sm">{username}</div>
+        </div>
+        <Button variant="ghost" size="icon">
+          <FaMicrophone className="h-4 w-4" />
+          <span className="sr-only">Mute/Unmute</span>
+        </Button>
+      </div>
+    </>
+  );
+};
+const Sidebar = ({ participants }: Participants) => {
   return (
     <div>
       <div className="w-72 border-l border-muted p-6 relative hidden sm:block">
@@ -17,45 +53,15 @@ const Sidebar = () => {
             </Button>
           </div>
           <div className="flex flex-col gap-2">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src="/placeholder-user.jpg" />
-                  <AvatarFallback>U1</AvatarFallback>
-                </Avatar>
-                <div className="text-sm">User 1</div>
-              </div>
-              <Button variant="ghost" size="icon">
-                <FaMicrophone className="h-4 w-4" />
-                <span className="sr-only">Mute/Unmute</span>
-              </Button>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src="/placeholder-user.jpg" />
-                  <AvatarFallback>U2</AvatarFallback>
-                </Avatar>
-                <div className="text-sm">User 2</div>
-              </div>
-              <Button variant="ghost" size="icon">
-                <FaMicrophone className="h-4 w-4" />
-                <span className="sr-only">Mute/Unmute</span>
-              </Button>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src="/placeholder-user.jpg" />
-                  <AvatarFallback>U3</AvatarFallback>
-                </Avatar>
-                <div className="text-sm">User 3</div>
-              </div>
-              <Button variant="ghost" size="icon">
-                <FaMicrophone className="h-4 w-4" />
-                <span className="sr-only">Mute/Unmute</span>
-              </Button>
-            </div>
+            {participants.map((item: string, index: number) => {
+              return (
+                <>
+                  <div key={index}>
+                    <ParticipantsComponent username={item} />
+                  </div>
+                </>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -127,6 +133,6 @@ const Sidebar = () => {
       </div>
     </div>
   );
-}
+};
 
-export default Sidebar
+export default Sidebar;

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import EditorPage from "./EditorPage";
 import Footer from "./Footer";
 import Sidebar from "./Sidebar";
@@ -11,7 +11,7 @@ export default function Component() {
   const { username } = location.state;
   const roomId = location.pathname.split("/")[2];
   const socketRef = useRef<Socket | null>(null);
-
+  const [participants, setParticipants] = useState<string[]>([]);
   useEffect(() => {
     // Initialize socket connection
     const initSocket = async () => {
@@ -31,11 +31,15 @@ export default function Component() {
       // Set up event listeners
       socket.on("userJoined", ({ username }) => {
         console.log("User joined", username);
+        setParticipants((prevParticipants) => [...prevParticipants, username]);
         toast.success(`${username} has joined the room.`);
       });
 
       socket.on("userLeft", ({ username }) => {
         console.log("User left", username);
+        setParticipants((prevParticipants) =>
+          prevParticipants.filter((p) => p !== username)
+        );
         toast.error(`${username} has left the room.`);
       });
 
@@ -52,8 +56,8 @@ export default function Component() {
       // Cleanup function
       return () => {
         if (socketRef.current) {
-          socketRef.current.off("userJoined"); // Remove specific listener
-          socketRef.current.off("userLeft"); // Remove specific listener
+          socketRef.current.off("userJoined");
+          socketRef.current.off("userLeft");
           socketRef.current.disconnect();
         }
       };
@@ -65,12 +69,14 @@ export default function Component() {
     // Cleanup on component unmount
     return () => {
       if (socketRef.current) {
-        socketRef.current.off("userJoined"); // Remove specific listener
-        socketRef.current.off("userLeft"); // Remove specific listener
+        socketRef.current.off("userJoined");
+        socketRef.current.off("userLeft");
         socketRef.current.disconnect();
       }
     };
   }, [roomId, username]);
+  console.log("Participants:", participants);
+  
 
   return (
     <div className="flex h-screen w-full flex-col">
@@ -79,7 +85,7 @@ export default function Component() {
         {/* Code editor */}
         <EditorPage />
         {/* Sidebar */}
-        <Sidebar />
+        <Sidebar participants={participants} />
       </main>
       {/* Footer */}
       <Footer />
