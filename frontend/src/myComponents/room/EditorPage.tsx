@@ -1,5 +1,5 @@
-import React from "react";
-import Codemirror from "codemirror";
+// import React from "react";
+// import Codemirror from "codemirror";
 import { Button } from "../../shadcn/components/ui/button";
 import { Textarea } from "../../shadcn/components/ui/textarea";
 import { LuMaximize, LuMinimize } from "react-icons/lu";

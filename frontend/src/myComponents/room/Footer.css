@@ -1,0 +1,16 @@
+@keyframes moveUp {
+  0% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+ 
+  100% {
+    opacity: 0;
+    transform: translateY(-150px);
+  }
+}
+
+.animate-emoji {
+  position: absolute;
+  animation: moveUp 2.5s ease-out forwards;
+}
