@@ -2,6 +2,7 @@ import Navbar from "../Navbar/Navbar";
 import CompanyLogo from "../../shadcn/components/ui/CompanyLogo";
 import ExistingRoomPageModal from "./ExistingRoomPageModal";
 import NewRoomPageModal from "./NewRoomPageModal";
+import {Card} from "../../shadcn/components/ui/card"; 
 import { useUser } from "@clerk/clerk-react";
 
 export default function HomePage() {
@@ -31,20 +32,20 @@ export default function HomePage() {
             </p>
           </div>
           {/* Right Side of the panel */}
-          <div className="flex flex-col justify-center items-center gap-4">
-            <div className="bg-gray-100 dark:bg-gray-700 p-6 rounded-lg shadow-lg w-full max-w-md mb-4">
-              <h2 className="text-2xl font-semibold mb-4">
-                Start an Instant room to collaborate and code now
-              </h2>
-            </div>
+          <Card className="flex flex-col justify-center items-center gap-4 animate-fade-in p-6 rounded-lg shadow-lg w-15 max-w-md mb-4 ">
+            <h2 className="text-2xl font-semibold mb-4 text-center">
+              Start an Instant Room
+            </h2>
+            <p className="text-center text-gray-600 dark:text-gray-300">
+              Collaborate and code live with your team instantly.
+            </p>
             <div className="flex gap-4">
               <NewRoomPageModal isUserLoggedIn={isUserLoggedIn} />
               <ExistingRoomPageModal isUserLoggedIn={isUserLoggedIn} />
             </div>
-          </div>
+          </Card>
         </div>
       </main>
-         
     </div>
   );
 }
