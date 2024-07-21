@@ -1,5 +1,5 @@
 import * as React from "react";
-import { GoSun, GoMoon } from "react-icons/go";
+import { GoMoon } from "react-icons/go";
 import { TiWeatherSunny } from "react-icons/ti";
 import { cn } from "../../lib/utils";
 

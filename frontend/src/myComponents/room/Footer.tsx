@@ -31,8 +31,8 @@ interface Emoji {
 }
 
 const Footer = ({ leaveRoom }: FooterProps) => {
-  const [micOn, setMicOn] = useState(true);
-  const [videoOn, setVideoOn] = useState(true);
+  const [micOn, setMicOn] = useState(false);
+  const [videoOn, setVideoOn] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
   const [dateTime, setDateTime] = useState(new Date());
   const [emojis, setEmojis] = useState<Emoji[]>([]);
@@ -42,6 +42,7 @@ const Footer = ({ leaveRoom }: FooterProps) => {
   const [videoAccessRequested, setVideoAccessRequested] = useState(false);
 
   const emojiIdRef = useRef(0);
+  const videoStreamRef = useRef<MediaStream | null>(null);
 
   useEffect(() => {
     const intervalId = setInterval(() => {
@@ -49,6 +50,24 @@ const Footer = ({ leaveRoom }: FooterProps) => {
     }, 1000);
     return () => clearInterval(intervalId);
   }, []);
+
+  useEffect(() => {
+    const getUserMedia = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        videoStreamRef.current = stream;
+        if (!videoOn) {
+          stream.getTracks().forEach(track => track.stop()); // Stop video if videoOn is false
+        }
+      } catch (error) {
+        console.error("Error accessing media devices.", error);
+        setVideoError(true);
+      }
+    };
+    if (videoAccessRequested) {
+      getUserMedia();
+    }
+  }, [videoAccessRequested, videoOn]);
 
   const requestMicAccess = async () => {
     try {
@@ -75,7 +94,7 @@ const Footer = ({ leaveRoom }: FooterProps) => {
       setMicAccessRequested(true);
       await requestMicAccess();
     }
-    setMicOn(!micOn);
+    setMicOn(prevMicOn => !prevMicOn);
   };
 
   const toggleVideo = async () => {
@@ -83,7 +102,12 @@ const Footer = ({ leaveRoom }: FooterProps) => {
       setVideoAccessRequested(true);
       await requestVideoAccess();
     }
-    setVideoOn(!videoOn);
+    setVideoOn(prevVideoOn => {
+      if (videoStreamRef.current) {
+        videoStreamRef.current.getTracks().forEach(track => track.stop()); // Stop the video track
+      }
+      return !prevVideoOn;
+    });
   };
 
   const handleLeave = () => {

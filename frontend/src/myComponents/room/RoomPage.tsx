@@ -6,7 +6,7 @@ import toast, { Toaster } from "react-hot-toast";
 import { useLocation, useNavigate } from "react-router-dom";
 import { io, Socket } from "socket.io-client";
 
-export default function Component() {
+export default function RoomPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const { username, isAuthorr } = location.state;
@@ -14,9 +14,10 @@ export default function Component() {
   const socketRef = useRef<Socket | null>(null);
   const [participants, setParticipants] = useState<string[]>([]);
   const [joinRequests, setJoinRequests] = useState<string[]>([]);
-  const [isAuthor, setIsAuthor] = useState<boolean>(isAuthorr);
+  const [isAuthor] = useState<boolean>(isAuthorr);
   const [isPending, setIsPending] = useState<boolean>(!isAuthorr);
   const currentUsername = useRef<string>(username);
+
   useEffect(() => {
     const initSocket = async () => {
       const options = {
@@ -84,7 +85,8 @@ export default function Component() {
       socket.on("connect_error", () => {
         toast.error("Connection failed, retrying...");
       });
-      socket.on("youWereRemoved", ({ roomId }) => {
+
+      socket.on("youWereRemoved", () => {
         toast.error("You have been removed from the room.");
         navigate("/");
       });
@@ -93,6 +95,7 @@ export default function Component() {
         setParticipants((prev) => prev.filter((p) => p !== username));
         toast.error(`${username} has been removed from the room.`);
       });
+
       socket.on("userLeftWillingly", ({ username }) => {
         setParticipants((prev) => prev.filter((p) => p !== username));
         if (username === currentUsername.current) {
@@ -128,9 +131,11 @@ export default function Component() {
       }
     };
   }, [roomId, username, navigate, isAuthorr]);
+
   useEffect(() => {
     currentUsername.current = username;
   }, [username]);
+
   const handleApprove = (username: string) => {
     if (socketRef.current && isAuthor) {
       socketRef.current.emit("approveJoinRequest", { roomId, username });
@@ -150,11 +155,19 @@ export default function Component() {
       socketRef.current.emit("removeParticipant", { roomId, username });
     }
   };
+
+  const handleInvite = (email: string) => {
+    if (socketRef.current) {
+      socketRef.current.emit("inviteParticipant", { roomId, email });
+    }
+  };
+
   const leaveRoom = () => {
     if (socketRef.current) {
       socketRef.current.emit("leaveRoom", { roomId, username });
     }
   };
+
   if (isPending) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
@@ -167,7 +180,7 @@ export default function Component() {
     <div className="flex h-screen w-full flex-col">
       <Toaster position="top-center" reverseOrder={false} />
       <main className="flex flex-1 overflow-hidden">
-        <EditorPage />
+        <EditorPage onFullscreenToggle={() => { /* Handle fullscreen toggle */ }} />
         <Sidebar
           participants={participants}
           isAuthor={isAuthor}
@@ -175,6 +188,7 @@ export default function Component() {
           handleApprove={handleApprove}
           handleReject={handleReject}
           handleRemove={handleRemove}
+          handleInvite={handleInvite}
         />
       </main>
       <Footer leaveRoom={leaveRoom} />
