@@ -59,11 +59,11 @@ export default function useSocket({
     socketService.on("userLeft", ({ username }) => {
       setParticipants((prev) => prev.filter((p) => p !== username));
       if (username === currentUsername.current) {
-        toast.error("You left the room.");
+        toast.error("You left the room.");}
         navigate("/");
-      } else {
-        toast.error(`${username} has left the room.`);
-      }
+      // } else {
+      //   toast.error(`${username} has left the room.`);
+      // }
     });
 
     socketService.on("roomClosed", () => {
@@ -129,7 +129,7 @@ export default function useSocket({
   const leaveRoom = () => {
     socketService.emit("leaveRoom", { roomId, username });
   };
-
+  // check this later
   const doesRoomExist = () => {
     return new Promise<boolean>((resolve) => {
       socketService.emit("doesRoomExist", { roomId });

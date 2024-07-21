@@ -7,9 +7,10 @@ interface NotificationProps {
   username: string;
   onApprove: () => void;
   onReject: () => void;
+  onClose: () => void; // Added to close the notification
 }
 
-const Notification = ({ username, onApprove, onReject }: NotificationProps) => {
+const Notification = ({ username, onApprove, onReject, onClose }: NotificationProps) => {
   return (
     <div className="fixed bottom-4 right-4 max-w-sm w-full sm:w-96 z-50">
       <Card className="shadow-lg">
@@ -31,7 +32,10 @@ const Notification = ({ username, onApprove, onReject }: NotificationProps) => {
         </CardContent>
         <CardFooter className="flex justify-end space-x-2 bg-muted/50 p-4">
           <Button
-            onClick={onReject}
+            onClick={() => {
+              onReject();
+              onClose(); // Close the notification on reject
+            }}
             variant="outline"
             className="text-destructive hover:bg-destructive/10"
           >
@@ -39,7 +43,10 @@ const Notification = ({ username, onApprove, onReject }: NotificationProps) => {
             Reject
           </Button>
           <Button
-            onClick={onApprove}
+            onClick={() => {
+              onApprove();
+              onClose(); // Close the notification on approve
+            }}
             className="bg-green-600 hover:bg-green-700"
           >
             <FaCheck className="mr-2 h-4 w-4" />
