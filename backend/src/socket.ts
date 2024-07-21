@@ -155,6 +155,8 @@ const initializeSocket = (server: any) => {
         io.to(roomId).emit("userLeftWillingly", { username });
       }
     });
+    console.log("these rooms are available", rooms);
+    
 
     socket.on("disconnect", () => {
       console.log("User disconnected");
