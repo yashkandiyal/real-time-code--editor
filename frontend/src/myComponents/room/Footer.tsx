@@ -31,8 +31,8 @@ interface Emoji {
 }
 
 const Footer = ({ leaveRoom }: FooterProps) => {
-  const [micOn, setMicOn] = useState(true);
-  const [videoOn, setVideoOn] = useState(true);
+  const [micOn, setMicOn] = useState(false);
+  const [videoOn, setVideoOn] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
   const [dateTime, setDateTime] = useState(new Date());
   const [emojis, setEmojis] = useState<Emoji[]>([]);
@@ -42,6 +42,7 @@ const Footer = ({ leaveRoom }: FooterProps) => {
   const [videoAccessRequested, setVideoAccessRequested] = useState(false);
 
   const emojiIdRef = useRef(0);
+  const videoStreamRef = useRef<MediaStream | null>(null);
 
   useEffect(() => {
     const intervalId = setInterval(() => {
@@ -49,6 +50,24 @@ const Footer = ({ leaveRoom }: FooterProps) => {
     }, 1000);
     return () => clearInterval(intervalId);
   }, []);
+
+  useEffect(() => {
+    const getUserMedia = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        videoStreamRef.current = stream;
+        if (!videoOn) {
+          stream.getTracks().forEach(track => track.stop());
+        }
+      } catch (error) {
+        console.error("Error accessing media devices.", error);
+        setVideoError(true);
+      }
+    };
+    if (videoAccessRequested) {
+      getUserMedia();
+    }
+  }, [videoAccessRequested, videoOn]);
 
   const requestMicAccess = async () => {
     try {
@@ -75,7 +94,7 @@ const Footer = ({ leaveRoom }: FooterProps) => {
       setMicAccessRequested(true);
       await requestMicAccess();
     }
-    setMicOn(!micOn);
+    setMicOn(prevMicOn => !prevMicOn);
   };
 
   const toggleVideo = async () => {
@@ -83,7 +102,12 @@ const Footer = ({ leaveRoom }: FooterProps) => {
       setVideoAccessRequested(true);
       await requestVideoAccess();
     }
-    setVideoOn(!videoOn);
+    setVideoOn(prevVideoOn => {
+      if (videoStreamRef.current) {
+        videoStreamRef.current.getTracks().forEach(track => track.stop());
+      }
+      return !prevVideoOn;
+    });
   };
 
   const handleLeave = () => {
@@ -108,76 +132,51 @@ const Footer = ({ leaveRoom }: FooterProps) => {
   };
 
   return (
-    <footer className="fixed bottom-0 left-0 right-0 bg-gray-900 z-50 h-16">
-      <div className="container mx-auto px-4 py-2 flex items-center justify-between">
-        <div className="text-white">
-          {dateTime.toLocaleDateString("en-GB", {
-            weekday: "long",
-            day: "2-digit",
-            month: "2-digit",
-            year: "numeric",
-          })}{" "}
-          |{" "}
+    <footer className="bg-[#2C2C2C] p-4 flex flex-col md:flex-row items-center justify-between">
+      <div className="flex items-center space-x-2">
+        <span className="text-white text-sm">
           {dateTime.toLocaleTimeString("en-US", {
             hour: "2-digit",
             minute: "2-digit",
             hour12: true,
           })}
-        </div>
-        <div className="flex items-center justify-center space-x-4 mx-auto">
-          <Button
-            variant="ghost"
-            size="lg"
-            className="text-white flex items-center"
-            onClick={toggleMic}
-          >
-            {micOn ? (
-              <FaMicrophone className="h-6 w-6" />
-            ) : (
-              <FaMicrophoneSlash className="h-6 w-6" />
-            )}
-            {micError && <FaExclamationCircle className="text-red-600 ml-1" />}
+        </span>
+        <span className="text-white text-sm">|</span>
+        <span className="text-white text-sm">
+          {dateTime.toLocaleDateString("en-GB", {
+            weekday: "long",
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+          })}
+        </span>
+      </div>
+      <div className="flex items-center space-x-2 mt-4 md:mt-0 justify-center w-full">
+        <Button variant="ghost" size="icon" className="text-white" onClick={toggleMic}>
+          {micOn ? <FaMicrophone className="w-6 h-6" /> : <FaMicrophoneSlash className="w-6 h-6" />}
+          {micError && <FaExclamationCircle className="text-red-600 ml-1" />}
+        </Button>
+        <Button variant="ghost" size="icon" className="text-white" onClick={toggleVideo}>
+          {videoOn ? <FaVideo className="w-6 h-6" /> : <FaVideoSlash className="w-6 h-6" />}
+          {videoError && <FaExclamationCircle className="text-red-600 ml-1" />}
+        </Button>
+        <div className="relative group">
+          <Button variant="ghost" size="icon" className="text-white">
+            <FaSmile className="w-6 h-6" />
           </Button>
-          <Button
-            variant="ghost"
-            size="lg"
-            className="text-white flex items-center"
-            onClick={toggleVideo}
-          >
-            {videoOn ? (
-              <FaVideo className="h-6 w-6" />
-            ) : (
-              <FaVideoSlash className="h-6 w-6" />
-            )}
-            {videoError && <FaExclamationCircle className="text-red-600 ml-1" />}
-          </Button>
-          <div className="relative group">
-            <Button variant="ghost" size="lg" className="text-white flex items-center">
-              <FaSmile className="h-6 w-6" />
-            </Button>
-            <div className="absolute left-0 bottom-full mb-2 w-40 bg-white text-black rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity">
-              <div className="flex flex-wrap p-2">
-                {["😀", "😃", "😄", "😁", "😆", "😅", "😂", "🤣"].map((emoji) => (
-                  <button
-                    key={emoji}
-                    className="text-xl m-1"
-                    onClick={(event) => handleEmojiClick(emoji, event)}
-                  >
-                    {emoji}
-                  </button>
-                ))}
-              </div>
+          <div className="absolute left-0 bottom-full mb-2 w-40 bg-white text-black rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="flex flex-wrap p-2">
+              {["😀", "😃", "😄", "😁", "😆", "😅", "😂", "🤣"].map((emoji) => (
+                <button key={emoji} className="text-xl m-1" onClick={(event) => handleEmojiClick(emoji, event)}>
+                  {emoji}
+                </button>
+              ))}
             </div>
           </div>
-          <Button
-            variant="destructive"
-            size="lg"
-            className="bg-red-600 text-white"
-            onClick={handleLeave}
-          >
-            <MdOutlineCallEnd className="h-8 w-6" />
-          </Button>
         </div>
+        <Button variant="destructive" size="icon" className="text-red-600" onClick={handleLeave}>
+          <MdOutlineCallEnd className="w-6 h-6" />
+        </Button>
       </div>
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogTrigger />
@@ -193,11 +192,7 @@ const Footer = ({ leaveRoom }: FooterProps) => {
         </DialogContent>
       </Dialog>
       {emojis.map((e) => (
-        <div
-          key={e.id}
-          className="animate-emoji"
-          style={{ left: e.x, top: e.y }}
-        >
+        <div key={e.id} className="animate-emoji" style={{ left: e.x, top: e.y }}>
           <span className="text-4xl">{e.emoji}</span>
         </div>
       ))}
