@@ -5,18 +5,16 @@ interface AlertProps {
   isOpen: boolean;
   onConfirm: () => void; 
   onCancel: () => void;
-  action: 'enter' | 'exit';
+  action: 'enter' | 'exit' | 'copy' | 'download' | 'reset';
+  message?: string;
 }
 
-const Alert: React.FC<AlertProps> = ({ isOpen, onCancel, action }) => {
+const Alert: React.FC<AlertProps> = ({ isOpen, onConfirm, onCancel, action}) => {
   const [show, setShow] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
-      // Show alert after 2 seconds
       const showAlertTimeout = setTimeout(() => setShow(true), 1000);
-
-      // Hide alert after 3 seconds (2 seconds display + 1 second fade out)
       const hideAlertTimeout = setTimeout(() => setShow(false), 4000);
 
       return () => {
@@ -38,14 +36,30 @@ const Alert: React.FC<AlertProps> = ({ isOpen, onCancel, action }) => {
       >
         <DialogHeader className="mt-0 mb-2">
           <DialogTitle>
-            {action === 'enter' ? 'Fullscreen Entered' : 'Fullscreen Exited'}
+            {action === 'enter' ? 'Fullscreen Entered' : 
+            action === 'exit' ? 'Fullscreen Exited' :
+            action === 'copy' ? 'Code Copied' :
+            action === 'download' ? 'File Downloaded' : 
+            'Reset Code'}
           </DialogTitle>
         </DialogHeader>
         <DialogDescription className="mt-0 mb-2">
           {action === 'enter'
             ? 'You have entered fullscreen mode.'
-            : 'You have exited fullscreen mode.'}
+            : action === 'exit'
+            ? 'You have exited fullscreen mode.'
+            : action === 'copy'
+            ? 'Code has been copied to clipboard.'
+            : action === 'download'
+            ? 'Code file has been downloaded.'
+            : 'Are you sure you want to reset the code?'}
         </DialogDescription>
+        {action === 'reset' && (
+          <div className="flex justify-end gap-2">
+            <button onClick={onCancel} className="px-4 py-2 bg-gray-300 rounded-md">Cancel</button>
+            <button onClick={onConfirm} className="px-4 py-2 bg-red-500 text-white rounded-md">Reset</button>
+          </div>
+        )}
         <DialogClose className="absolute top-2 right-2" />
       </DialogContent>
     </Dialog>

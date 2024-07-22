@@ -6,7 +6,7 @@ import { Toaster } from "react-hot-toast";
 import { useLocation, useNavigate } from "react-router-dom";
 import useSocket from "../../hooks/SocketHook";
 import Navbar from "../Navbar/Navbar";
-import Notification from "./Notification"; // Import the Notification component
+import Notification from "./Notification";
 
 export default function RoomPage() {
   const location = useLocation();
@@ -68,25 +68,25 @@ export default function RoomPage() {
       <Navbar />
       <Toaster position="top-center" reverseOrder={false} />
       <main className="flex flex-1 overflow-hidden">
-        <div className="flex flex-1 overflow-hidden">
-          <EditorPage onFullscreenToggle={() => {}} />
+        <div className="flex flex-1">
+          <EditorPage className="flex-1" onFullscreenToggle={() => {}} />
           <Sidebar
             participants={participants}
             isAuthor={isAuthorr}
-            joinRequests={joinRequests}
             handleRemove={handleRemove}
             handleInvite={handleInvite}
+            className="flex-1"
           />
         </div>
       </main>
       <Footer leaveRoom={leaveRoom} roomId={roomId} username={username} />
       {notification && (
-        <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 max-w-xs w-full">
+        <div className="fixed top-5 left-1/2 transform -translate-x-1/2 z-50 max-w-xs w-full">
           <Notification
             username={notification}
             onApprove={handleNotificationApprove}
             onReject={handleNotificationReject}
-            onClose={() => setNotification(null)} // Close notification when done
+            onClose={() => setNotification(null)}
           />
         </div>
       )}

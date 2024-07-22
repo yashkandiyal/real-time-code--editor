@@ -12,8 +12,8 @@ interface NotificationProps {
 
 const Notification = ({ username, onApprove, onReject, onClose }: NotificationProps) => {
   return (
-    <div className="fixed bottom-4 right-4 max-w-sm w-full sm:w-96 z-50">
-      <Card className="shadow-lg">
+    <div className="fixed top-5 left-1/2 transform -translate-x-1/2 max-w-sm w-full sm:w-96 z-50">
+      <Card className="shadow-lg backdrop-blur-md bg-white/30 border border-white/20">
         <CardContent className="p-4">
           <div className="flex items-start space-x-4">
             <Avatar className="h-10 w-10 bg-blue-500">
@@ -30,11 +30,11 @@ const Notification = ({ username, onApprove, onReject, onClose }: NotificationPr
             </div>
           </div>
         </CardContent>
-        <CardFooter className="flex justify-end space-x-2 bg-muted/50 p-4">
+        <CardFooter className="flex justify-end space-x-2 bg-white/30 p-4 border-t border-white/20">
           <Button
             onClick={() => {
               onReject();
-              onClose(); // Close the notification on reject
+              onClose();
             }}
             variant="outline"
             className="text-destructive hover:bg-destructive/10"
@@ -45,7 +45,7 @@ const Notification = ({ username, onApprove, onReject, onClose }: NotificationPr
           <Button
             onClick={() => {
               onApprove();
-              onClose(); // Close the notification on approve
+              onClose();
             }}
             className="bg-green-600 hover:bg-green-700"
           >
