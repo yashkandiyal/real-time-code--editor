@@ -11,8 +11,6 @@ import { Button } from "../../shadcn/components/ui/button";
 import {
   FaMicrophone,
   FaMicrophoneSlash,
-  FaVideo,
-  FaVideoSlash,
   FaSmile,
   FaExclamationCircle,
   FaUserFriends,
@@ -38,18 +36,14 @@ interface Emoji {
 
 const Footer: React.FC<FooterProps> = ({ leaveRoom, roomId, username }) => {
   const [micOn, setMicOn] = useState(false);
-  const [videoOn, setVideoOn] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [emojis, setEmojis] = useState<Emoji[]>([]);
   const [micError, setMicError] = useState(false);
-  const [videoError, setVideoError] = useState(false);
   const [micAccessRequested, setMicAccessRequested] = useState(false);
-  const [videoAccessRequested, setVideoAccessRequested] = useState(false);
   const [lastEmojiTime, setLastEmojiTime] = useState<number>(0); // State for managing delay
 
   const emojiIdRef = useRef(0);
-  const videoStreamRef = useRef<MediaStream | null>(null);
 
   useEffect(() => {
     const intervalId = setInterval(() => {
@@ -58,24 +52,7 @@ const Footer: React.FC<FooterProps> = ({ leaveRoom, roomId, username }) => {
     return () => clearInterval(intervalId);
   }, []);
 
-  useEffect(() => {
-    const getUserMedia = async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        videoStreamRef.current = stream;
-        if (!videoOn) {
-          stream.getTracks().forEach(track => track.stop());
-        }
-      } catch (error) {
-        console.error("Error accessing media devices.", error);
-        setVideoError(true);
-      }
-    };
-    if (videoAccessRequested) {
-      getUserMedia();
-    }
-  }, [videoAccessRequested, videoOn]);
-
+ 
   const requestMicAccess = async () => {
     try {
       await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -83,16 +60,6 @@ const Footer: React.FC<FooterProps> = ({ leaveRoom, roomId, username }) => {
     } catch (err) {
       console.error("Microphone access denied:", err);
       setMicError(true);
-    }
-  };
-
-  const requestVideoAccess = async () => {
-    try {
-      await navigator.mediaDevices.getUserMedia({ video: true });
-      setVideoError(false);
-    } catch (err) {
-      console.error("Camera access denied:", err);
-      setVideoError(true);
     }
   };
 
@@ -104,18 +71,6 @@ const Footer: React.FC<FooterProps> = ({ leaveRoom, roomId, username }) => {
     setMicOn(prevMicOn => !prevMicOn);
   };
 
-  const toggleVideo = async () => {
-    if (!videoAccessRequested) {
-      setVideoAccessRequested(true);
-      await requestVideoAccess();
-    }
-    setVideoOn(prevVideoOn => {
-      if (videoStreamRef.current) {
-        videoStreamRef.current.getTracks().forEach(track => track.stop());
-      }
-      return !prevVideoOn;
-    });
-  };
 
   const handleLeave = () => {
     setShowDialog(true);
@@ -149,14 +104,13 @@ const Footer: React.FC<FooterProps> = ({ leaveRoom, roomId, username }) => {
         transition={{ type: "spring", stiffness: 100 }}
         className="bg-[#202124] py-4 px-6 flex items-center justify-between bottom-0 left-0 right-0 z-50 shadow-lg"
       >
-        <div className="flex items-center space-x-2 text-gray-400 text-sm">
+        <div className="flex items-center space-x-1 text-gray-400 text-lg">
           <span>{currentTime.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false })}</span>
           <span>|</span>
           <span>{roomId}</span>
         </div>
         <div className="flex items-center space-x-4 justify-center flex-grow">
           <ControlButton icon={micOn ? FaMicrophone : FaMicrophoneSlash} onClick={toggleMic} error={micError} />
-          <ControlButton icon={videoOn ? FaVideo : FaVideoSlash} onClick={toggleVideo} error={videoError} />
           <ControlButton icon={MdCoPresent} onClick={() => {}} />
           <EmojiButton onEmojiClick={handleEmojiClick} />
           <ControlButton icon={FaUserFriends} onClick={() => {}} />

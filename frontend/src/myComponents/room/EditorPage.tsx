@@ -1,7 +1,10 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { Button } from "../../shadcn/components/ui/button";
 import { LuMaximize, LuMinimize } from "react-icons/lu";
+import { GrUndo, GrRedo } from "react-icons/gr";
+import { MdClear } from "react-icons/md";
+import { TbClipboardCopy } from "react-icons/tb";
+import { BiSolidDownload } from "react-icons/bi";
 import ConfirmationModal from "../room/MinorComponents/ConfirmationModal";
 import { EditorView, basicSetup } from "codemirror";
 import { javascript } from "@codemirror/lang-javascript";
@@ -21,22 +24,28 @@ interface EditorPageProps {
 }
 
 const languageIds: { [key: string]: number } = {
-  javascript: 63, // JavaScript (Node.js 12.14.0)
-  cpp: 54, // C++ (GCC 9.2.0)
-  python: 71, // Python (3.8.1)
+  javascript: 63,
+  cpp: 54,
+  python: 71,
+};
+
+const fileExtensions: { [key: string]: string } = {
+  javascript: "js",
+  cpp: "cpp",
+  python: "py",
 };
 
 const EditorPage: React.FC<EditorPageProps> = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [fullscreenAction, setFullscreenAction] = useState<"enter" | "exit">(
-    "enter"
-  );
+  const [fullscreenAction, setFullscreenAction] = useState<"enter" | "exit">("enter");
   const [showAlert, setShowAlert] = useState(false);
   const [editorContent, setEditorContent] = useState("");
   const [output, setOutput] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const editorRef = useRef<HTMLDivElement | null>(null);
   const [language, setLanguage] = useState("javascript");
+  const [history, setHistory] = useState<string[]>([""]);
+  const [historyIndex, setHistoryIndex] = useState(0);
 
   useEffect(() => {
     if (showAlert) {
@@ -60,7 +69,10 @@ const EditorPage: React.FC<EditorPageProps> = () => {
           languageExtension,
           EditorView.updateListener.of((update) => {
             if (update.docChanged) {
-              setEditorContent(update.state.doc.toString());
+              const newContent = update.state.doc.toString();
+              setEditorContent(newContent);
+              setHistory(prevHistory => [...prevHistory.slice(0, historyIndex + 1), newContent]);
+              setHistoryIndex(prevIndex => prevIndex + 1);
             }
           }),
         ],
@@ -116,17 +128,21 @@ const EditorPage: React.FC<EditorPageProps> = () => {
         body: JSON.stringify({
           language_id: languageIds[language],
           source_code: editorContent,
-          stdin: "", // Add input here if needed
+          stdin: "",
         }),
       };
 
       const submitResponse = await fetch(url, options);
+      if (!submitResponse.ok) {
+        throw new Error(`Submit request failed: ${submitResponse.statusText}`);
+      }
+
       const submitData = await submitResponse.json();
       const token = submitData.token;
 
       let status = "Processing";
       while (status === "Processing" || status === "In Queue") {
-        await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait for 1 second
+        await new Promise((resolve) => setTimeout(resolve, 1000));
 
         const resultResponse = await fetch(
           `https://judge0-ce.p.rapidapi.com/submissions/${token}`,
@@ -139,20 +155,83 @@ const EditorPage: React.FC<EditorPageProps> = () => {
           }
         );
 
+        if (!resultResponse.ok) {
+          throw new Error(`Result request failed: ${resultResponse.statusText}`);
+        }
+
         const resultData = await resultResponse.json();
         status = resultData.status.description;
 
         if (status === "Accepted") {
           setOutput(resultData.stdout || resultData.stderr || "No output");
           break;
+        } else if (status !== "Processing" && status !== "In Queue") {
+          setOutput(resultData.stderr || "Unknown error occurred");
+          break;
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error executing code:", error);
-      setOutput("Error executing code. Please try again.");
+      setOutput(`Error executing code: ${error.message}`);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleUndo = () => {
+    if (historyIndex > 0) {
+      setHistoryIndex(prevIndex => prevIndex - 1);
+      const previousContent = history[historyIndex - 1];
+      setEditorContent(previousContent);
+      updateEditorContent(previousContent);
+    }
+  };
+
+  const handleRedo = () => {
+    if (historyIndex < history.length - 1) {
+      setHistoryIndex(prevIndex => prevIndex + 1);
+      const nextContent = history[historyIndex + 1];
+      setEditorContent(nextContent);
+      updateEditorContent(nextContent);
+    }
+  };
+
+  const handleReset = () => {
+    setEditorContent("");
+    setOutput(null);
+    setHistory([""]);
+    setHistoryIndex(0);
+    updateEditorContent("");
+  };
+
+  const updateEditorContent = (content: string) => {
+    if (editorRef.current) {
+      const view = EditorView.findFromDOM(editorRef.current);
+      if (view) {
+        view.dispatch({
+          changes: { from: 0, to: view.state.doc.length, insert: content }
+        });
+      }
+    }
+  };
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(editorContent)
+      .then(() => {
+        setShowAlert(true);
+        setTimeout(() => setShowAlert(false), 2000);
+      })
+      .catch(err => console.error('Failed to copy text: ', err));
+  };
+
+  const handleDownload = () => {
+    const element = document.createElement("a");
+    const file = new Blob([editorContent], {type: 'text/plain'});
+    element.href = URL.createObjectURL(file);
+    element.download = `code.${fileExtensions[language]}`;
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
   };
 
   return (
@@ -176,6 +255,58 @@ const EditorPage: React.FC<EditorPageProps> = () => {
                 <Button
                   variant="ghost"
                   size="icon"
+                  onClick={handleUndo}
+                  aria-label="Undo"
+                  className="relative group"
+                  disabled={historyIndex === 0}
+                >
+                  <GrUndo className="h-4 w-4" />
+                  <span className="sr-only">Undo</span>
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleRedo}
+                  aria-label="Redo"
+                  className="relative group"
+                  disabled={historyIndex === history.length - 1}
+                >
+                  <GrRedo className="h-4 w-4" />
+                  <span className="sr-only">Redo</span>
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleReset}
+                  aria-label="Reset"
+                  className="relative group"
+                >
+                  <MdClear className="h-4 w-4" />
+                  <span className="sr-only">Reset</span>
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleCopy}
+                  aria-label="Copy"
+                  className="relative group"
+                >
+                  <TbClipboardCopy className="h-4 w-4" />
+                  <span className="sr-only">Copy</span>
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleDownload}
+                  aria-label="Download"
+                  className="relative group"
+                >
+                  <BiSolidDownload className="h-4 w-4" />
+                  <span className="sr-only">Download</span>
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
                   onClick={handleFullscreenToggle}
                   aria-label={
                     document.fullscreenElement
@@ -194,11 +325,6 @@ const EditorPage: React.FC<EditorPageProps> = () => {
                       ? "Exit fullscreen"
                       : "Enter fullscreen"}
                   </span>
-                  <div className="absolute top-full mt-1 w-max p-2 text-xs text-white bg-gray-800 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                    {document.fullscreenElement
-                      ? "Exit fullscreen"
-                      : "Enter fullscreen"}
-                  </div>
                 </Button>
                 <Button
                   variant="ghost"
@@ -231,7 +357,11 @@ const EditorPage: React.FC<EditorPageProps> = () => {
         onCancel={handleCancel}
         action={fullscreenAction}
       />
-      
+      {showAlert && (
+        <div className="fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded shadow-lg">
+          Code copied to clipboard!
+        </div>
+      )}
     </div>
   );
 };
