@@ -19,6 +19,7 @@ import { MdContentCopy } from "react-icons/md"; // Importing MdContentCopy icon
 interface NewRoomPageModalProps {
   isUserLoggedIn: boolean;
   children?: React.ReactNode;
+  className?: string;
 }
 
 const NewRoomPageModal = ({ isUserLoggedIn }: NewRoomPageModalProps) => {
@@ -72,11 +73,16 @@ const NewRoomPageModal = ({ isUserLoggedIn }: NewRoomPageModalProps) => {
       <Toaster position="top-center" reverseOrder={false} />
       <Dialog>
         <DialogTrigger asChild>
-          <Button onClick={navigateUserToLogin}>Create new room</Button>
+        <Button 
+          onClick={navigateUserToLogin} 
+          className="bg-blue-500 hover:bg-blue-700 text-white text-xl sm:text-2xl px-4 py-6 rounded-lg"
+        >
+          Create new room
+        </Button>
         </DialogTrigger>
         <DialogContent className="sm:max-w-[425px] p-6 text-black dark:text-white">
           <DialogHeader>
-            <DialogTitle>Create your new room</DialogTitle>
+            <DialogTitle >Create your new room</DialogTitle>
             <DialogDescription>
               Click on generate to create a new room Id.
             </DialogDescription>
