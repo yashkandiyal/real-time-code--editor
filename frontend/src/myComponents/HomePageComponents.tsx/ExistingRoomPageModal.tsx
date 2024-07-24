@@ -16,6 +16,7 @@ import { useNavigate } from "react-router-dom";
 interface ExistingRoomPageModalProps {
   isUserLoggedIn: boolean;
   children?: React.ReactNode;
+  className?: string;
 }
 const ExistingRoomPageModal = ({isUserLoggedIn}:ExistingRoomPageModalProps) => {
   const [roomId, setRoomId] = useState<string | null>("");
@@ -45,24 +46,30 @@ const ExistingRoomPageModal = ({isUserLoggedIn}:ExistingRoomPageModalProps) => {
     <div>
       <Dialog>
         <DialogTrigger asChild>
-          <Button onClick={navigateUserToLogin} >Join an existing Room</Button>
+        <Button 
+          onClick={navigateUserToLogin} 
+          className="bg-green-500 hover:bg-green-700 text-white text-xl sm:text-2xl px-4 py-6 rounded-lg"
+        >
+          Join an existing Room
+        </Button>
+
         </DialogTrigger>
         <DialogContent className="sm:max-w-[425px]  text-black dark:text-white">
           <DialogHeader>
             <DialogTitle>Join a room</DialogTitle>
             <DialogDescription>
-              Enter your Room Id and Username to start collaborating with
+              Enter your Room ID and Username to start collaborating with
               others.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4 text-black dark:text-white">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="name" className="text-right">
-                RoomId
+               Room ID
               </Label>
               <Input
                 id="name"
-                placeholder="Enter Room Id"
+                placeholder="Enter Room ID"
                 className="col-span-3"
                 value={roomId!}
                 onChange={(e) => setRoomId(e.target.value)}
@@ -82,7 +89,7 @@ const ExistingRoomPageModal = ({isUserLoggedIn}:ExistingRoomPageModalProps) => {
             </div>
           </div>
           <DialogFooter>
-            <Button type="submit" onClick={navigateToRoom}>
+            <Button type="submit" onClick={navigateToRoom} >
               Join
             </Button>
           </DialogFooter>
