@@ -69,13 +69,12 @@ export default function RoomPage() {
       <Toaster position="top-center" reverseOrder={false} />
       <main className="flex flex-1 overflow-hidden">
         <div className="flex flex-1">
-          <EditorPage className="flex-1" onFullscreenToggle={() => {}} />
+          <EditorPage className="flex-1 w-full" onFullscreenToggle={() => {}} />
           <Sidebar
             participants={participants}
             isAuthor={isAuthorr}
             handleRemove={handleRemove}
             handleInvite={handleInvite}
-            className="flex-1"
           />
         </div>
       </main>
