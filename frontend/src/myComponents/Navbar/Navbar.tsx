@@ -2,7 +2,6 @@ import { UserButton } from "@clerk/clerk-react";
 import CompanyLogo from "../../shadcn/components/ui/CompanyLogo";
 import { useUser } from "@clerk/clerk-react";
 import { ToggleButton } from "../../shadcn/components/ui/ToggleButton.tsx";
-
 export default function Navbar() {
   const { user } = useUser();
   const username = user ? user.firstName : null;
@@ -22,7 +21,6 @@ export default function Navbar() {
           </div>
         </div>
       </header>
-         
     </div>
   );
 }

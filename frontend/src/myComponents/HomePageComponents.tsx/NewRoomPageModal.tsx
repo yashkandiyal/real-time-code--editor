@@ -18,6 +18,7 @@ import { MdContentCopy } from "react-icons/md"; // Importing MdContentCopy icon
 
 interface NewRoomPageModalProps {
   isUserLoggedIn: boolean;
+  children?: React.ReactNode;
 }
 
 const NewRoomPageModal = ({ isUserLoggedIn }: NewRoomPageModalProps) => {

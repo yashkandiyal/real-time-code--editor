@@ -15,6 +15,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 interface ExistingRoomPageModalProps {
   isUserLoggedIn: boolean;
+  children?: React.ReactNode;
 }
 const ExistingRoomPageModal = ({isUserLoggedIn}:ExistingRoomPageModalProps) => {
   const [roomId, setRoomId] = useState<string | null>("");

@@ -1,6 +1,7 @@
-import { useState } from "react";
+import React, { useState } from "react";
+import { motion } from "framer-motion";
 import { Button } from "../../shadcn/components/ui/button";
-import { FaPlus, FaTimes } from "react-icons/fa";
+import { FaPlus, FaTimes, FaChevronRight, FaUser, FaEnvelope, FaComment, FaCog, FaBars, FaChevronDown } from "react-icons/fa";
 import { Avatar, AvatarFallback, AvatarImage } from "../../shadcn/components/ui/avatar";
 
 interface ParticipantsProps {
@@ -8,12 +9,12 @@ interface ParticipantsProps {
   isAuthor: boolean;
   handleRemove: (username: string) => void;
   handleInvite: (email: string) => void;
-  className?: string;
 }
 
+// Participants Component to display each participant
 const ParticipantsComponent = ({ username }: { username: string }) => {
   return (
-    <div className="flex items-center justify-between p-2 rounded-lg shadow-sm transition-all">
+    <div className="flex items-center justify-between p-2 rounded-lg transition-all bg-white shadow">
       <div className="flex items-center gap-2">
         <Avatar className="h-8 w-8">
           <AvatarImage src="/placeholder-user.jpg" alt={`Avatar of ${username}`} />
@@ -25,6 +26,7 @@ const ParticipantsComponent = ({ username }: { username: string }) => {
   );
 };
 
+// Invite Modal Component to handle inviting participants
 const InviteModal = ({
   isOpen,
   onClose,
@@ -39,6 +41,7 @@ const InviteModal = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (email) {
+      console.log("Submitting email:", email); // Debugging log
       onInvite(email);
       setEmail("");
       onClose();
@@ -49,7 +52,12 @@ const InviteModal = ({
 
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
-      <div className="bg-white p-6 rounded-xl shadow-lg w-full max-w-md mx-2">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.9 }}
+        className="bg-white p-6 rounded-xl shadow-lg w-full max-w-md mx-2"
+      >
         <h2 className="text-lg font-semibold mb-4">Invite Participant</h2>
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
@@ -61,7 +69,7 @@ const InviteModal = ({
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="border border-gray-300 rounded p-2 w-full"
+              className="border rounded-md p-2 w-full focus:outline-none focus:ring-2"
               required
             />
           </div>
@@ -72,65 +80,134 @@ const InviteModal = ({
             <Button type="submit">Invite</Button>
           </div>
         </form>
-      </div>
+      </motion.div>
     </div>
   );
 };
 
-const Sidebar = ({
-  participants,
-  isAuthor,
-  handleRemove,
-  handleInvite,
-}: ParticipantsProps) => {
+// Main Sidebar Component
+const Sidebar = ({ participants, isAuthor, handleRemove, handleInvite }: ParticipantsProps) => {
+  const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const uniqueParticipants = Array.from(new Set(participants));
 
+  const categories = [
+    {
+      name: "Participants",
+      icon: <FaUser />,
+      subcategories: uniqueParticipants,
+      actions: (username: string) => (
+        isAuthor && uniqueParticipants.indexOf(username) !== 0 && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => handleRemove(username)}
+            className="ml-2 p-2 rounded-full focus:outline-none focus:ring-2"
+          >
+            <FaTimes className="h-5 w-5" />
+            <span className="sr-only">Remove</span>
+          </Button>
+        )
+      )
+    },
+    {
+      name: "Invite",
+      icon: <FaPlus />,
+      subcategories: [], 
+      actions: () => (
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setIsModalOpen(true)} 
+          className="ml-2 p-2 rounded-full focus:outline-none focus:ring-2"
+        >
+          <FaPlus className="h-5 w-5" />
+          <span className="sr-only">Invite participant</span>
+        </Button>
+      )
+    },
+    {
+      name: "Requests",
+      icon: <FaEnvelope />,
+      subcategories: [], 
+    },
+    {
+      name: "Comments",
+      icon: <FaComment />,
+      subcategories: [], 
+    },
+    {
+      name: "Settings",
+      icon: <FaCog />,
+      subcategories: [], 
+    }
+  ];
+
+  const toggleCategory = (categoryName: string) => {
+    setExpandedCategory(expandedCategory === categoryName ? null : categoryName);
+  };
+
   return (
-    <div className="relative flex flex-col h-full ">
-      <div className="flex flex-col flex-1">
-        <div className="w-full lg:w-72 border-r border-gray-200 p-6 flex flex-col shadow-md rounded-md h-full">
-          <header className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-medium">
-              Participants ({uniqueParticipants.length})
-            </h2>
-            {isAuthor && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setIsModalOpen(true)}
-                className="p-2 rounded-full  focus:outline-none focus:ring-2"
-              >
-                <FaPlus className="h-5 w-5" />
-                <span className="sr-only">Add participant</span>
-              </Button>
-            )}
-          </header>
-          <div className="flex flex-col gap-2 flex-1">
-            {uniqueParticipants.map((item: string, index: number) => (
-              <div key={index} className="flex items-center justify-between">
-                <ParticipantsComponent username={item} />
-                {isAuthor && index !== 0 && (
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => handleRemove(item)}
-                    className="ml-2 p-2 rounded-full hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-400"
+    <div className="relative h-screen flex">
+      <motion.div
+        initial={{ width: isSidebarOpen ? 256 : 64 }}
+        animate={{ width: isSidebarOpen ? 256 : 64 }}
+        className="h-full bg-gray-100 text-gray-800 overflow-hidden transition-all duration-300 shadow-lg"
+      >
+        <button
+          className="absolute top-4 right-4 z-20 p-2 bg-gray-800 text-white rounded-full focus:outline-none"
+          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+        >
+          {isSidebarOpen ? <FaTimes /> : <FaBars />}
+        </button>
+        <div className="h-full p-4 flex flex-col justify-between">
+          <div>
+            {categories.map((category) => (
+              <div key={category.name} className="mb-2">
+                <button
+                  className="w-full flex items-center justify-between p-2 hover:bg-gray-200 rounded"
+                  onClick={() => {
+                    if (category.name === "Invite") {
+                      setIsModalOpen(true); // 
+                    } else {
+                      toggleCategory(category.name);
+                    }
+                  }}
+                >
+                  <div className="flex items-center">
+                    {category.icon}
+                    {isSidebarOpen && <span className="ml-2">{category.name}</span>}
+                  </div>
+                  {isSidebarOpen && (expandedCategory === category.name ? <FaChevronDown /> : <FaChevronRight />)}
+                </button>
+                {isSidebarOpen && expandedCategory === category.name && category.name !== "Invite" && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="ml-6 mt-1"
                   >
-                    <FaTimes className="h-5 w-5 text-red-500" />
-                    <span className="sr-only">Remove</span>
-                  </Button>
+                    {category.subcategories.map((subcategory, index) => (
+                      <div key={index} className="py-1 px-2 hover:bg-gray-200 rounded text-sm flex justify-between items-center">
+                        <span>{subcategory}</span>
+                        {category.actions && category.actions(subcategory)}
+                      </div>
+                    ))}
+                  </motion.div>
                 )}
               </div>
             ))}
           </div>
         </div>
-      </div>
+      </motion.div>
+
       <InviteModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onInvite={(email) => {
+          console.log("Inviting email:", email); // Debugging log
           handleInvite(email);
           setIsModalOpen(false);
         }}

@@ -2,6 +2,7 @@ import * as React from "react";
 
 interface CompanyLogoProps {
   className?: string;
+  // name: string;
 }
 
 export default function CompanyLogo({ className }: CompanyLogoProps) {
