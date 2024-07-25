@@ -4,6 +4,7 @@ import { useUser } from "@clerk/clerk-react";
 import { ToggleButton } from "../../shadcn/components/ui/ToggleButton.tsx";
 import CompanyLogo from "../../shadcn/components/ui/CompanyLogo";
 import { GiHamburgerMenu } from "react-icons/gi";
+import { Link } from "react-router-dom";
 
 export default function Navbar() {
   const { user } = useUser();
@@ -19,14 +20,16 @@ export default function Navbar() {
       <div className="container mx-auto flex items-center justify-between">
         {/* Left section */}
         <div className="flex items-center">
-          <CompanyLogo />
+          <Link to="/">
+            <CompanyLogo />
+          </Link>
         </div>
         
         {/* Center section - Desktop only */}
         <div className="hidden md:flex items-center space-x-6">
-          <a href="#pricing" className="hover:text-indigo-600">Pricing</a>
-          <a href="#docs" className="hover:text-indigo-600">Docs</a>
-          <a href="#changelog" className="hover:text-indigo-600">Changelog</a>
+          <Link to="/pricing" className="hover:text-indigo-600">Pricing</Link>
+          <Link to="/docs" className="hover:text-indigo-600">Docs</Link>
+          <Link to="/changelog" className="hover:text-indigo-600">Changelog</Link>
         </div>
 
         {/* Right section */}
@@ -56,9 +59,9 @@ export default function Navbar() {
       {/* Mobile Menu */}
       {isMenuOpen && (
         <div className="md:hidden mt-4">
-          <a href="#pricing" className="block py-2 hover:text-indigo-600">Pricing</a>
+          <Link to="/pricing" className="hover:text-indigo-600">Pricing</Link>
           <a href="#docs" className="block py-2 hover:text-indigo-600">Docs</a>
-          <a href="#changelog" className="block py-2 hover:text-indigo-600">Changelog</a>
+          <Link to="/changelog" className="hover:text-indigo-600">Changelog</Link>
           <div className="py-2">
             <ToggleButton />
           </div>
