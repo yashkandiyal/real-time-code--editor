@@ -25,7 +25,7 @@ export default function RoomPage() {
     handleReject,
   } = useSocket({ username, isAuthor: isAuthorr, roomId, navigate });
 
-  const [notification, setNotification] = useState<string | null>(null);
+  const [notifications, setNotifications] = useState<string[]>([]);
 
   const handleInvite = () => {
     // Handle invite functionality
@@ -37,22 +37,38 @@ export default function RoomPage() {
 
   useEffect(() => {
     if (isAuthorr && joinRequests.length > 0) {
-      setNotification(joinRequests[joinRequests.length - 1]);
+      console.log("Join requests received:", joinRequests);
+      setNotifications(prevNotifications => {
+        const newNotifications = joinRequests.filter(
+          request => !prevNotifications.includes(request)
+        );
+        console.log("New notifications:", newNotifications);
+        return [...prevNotifications, ...newNotifications];
+      });
     }
   }, [isAuthorr, joinRequests]);
 
-  const handleNotificationApprove = () => {
-    if (notification) {
-      handleApprove(notification);
-      setNotification(null);
-    }
+  const handleNotificationApprove = (approvedUser: string) => {
+    console.log("Approving user:", approvedUser);
+    handleApprove(approvedUser);
+    setNotifications(prevNotifications => 
+      prevNotifications.filter(notification => notification !== approvedUser)
+    );
   };
 
-  const handleNotificationReject = () => {
-    if (notification) {
-      handleReject(notification);
-      setNotification(null);
-    }
+  const handleNotificationReject = (rejectedUser: string) => {
+    console.log("Rejecting user:", rejectedUser);
+    handleReject(rejectedUser);
+    setNotifications(prevNotifications => 
+      prevNotifications.filter(notification => notification !== rejectedUser)
+    );
+  };
+
+  const handleNotificationClose = (closedUser: string) => {
+    console.log("Closing notification for user:", closedUser);
+    setNotifications(prevNotifications => 
+      prevNotifications.filter(notification => notification !== closedUser)
+    );
   };
 
   if (isPending) {
@@ -62,6 +78,8 @@ export default function RoomPage() {
       </div>
     );
   }
+
+  console.log("Current notifications:", notifications);
 
   return (
     <div className="flex flex-col h-screen w-full">
@@ -79,16 +97,21 @@ export default function RoomPage() {
         </div>
       </main>
       <Footer leaveRoom={leaveRoom} roomId={roomId} username={username} />
-      {notification && (
-        <div className="fixed top-5 left-1/2 transform -translate-x-1/2 z-50 max-w-xs w-full">
+      {notifications.map((notification, index) => (
+        <div 
+          key={index} 
+          className="fixed left-1/2 transform -translate-x-1/2 z-50 max-w-xs w-full" 
+          style={{top: `${5 + index * 80}px`}}
+        >
           <Notification
             username={notification}
-            onApprove={handleNotificationApprove}
-            onReject={handleNotificationReject}
-            onClose={() => setNotification(null)}
+            onApprove={() => handleNotificationApprove(notification)}
+            onReject={() => handleNotificationReject(notification)}
+            onClose={() => handleNotificationClose(notification)}
+            show={true}
           />
         </div>
-      )}
+      ))}
     </div>
   );
 }

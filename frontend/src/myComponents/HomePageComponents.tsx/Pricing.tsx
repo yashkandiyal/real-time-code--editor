@@ -16,9 +16,9 @@ const pricingData = [
     period: "Lifetime",
     description: "Completely free for 30 days, all features are free so you can acutely work out if it's for you.",
     features: [
-      { name: "Up to 5 users", included: true },
-      { name: "25GB Cloud Storage", included: true },
-      { name: "50GB Memory", included: true },
+      { name: "Up to 2 users", included: true },
+      { name: "2GB Cloud Storage", included: true },
+      { name: "5GB Memory", included: true },
       { name: "Free domain", included: true },
       { name: "SSL certificate", included: false },
       { name: "Chat Support 24/7", included: false },
@@ -48,7 +48,7 @@ const pricingData = [
     period: "Per month",
     description: "Completely free for 30 days, all features are free so you can acutely work out if it's for you.",
     features: [
-      { name: "Up to 5 users", included: true },
+      { name: "Up to 15 users", included: true },
       { name: "25GB Cloud Storage", included: true },
       { name: "50GB Memory", included: true },
       { name: "Free domain", included: true },
