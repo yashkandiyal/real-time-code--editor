@@ -14,24 +14,24 @@ import {
   FaSmile,
   FaExclamationCircle,
   FaUserFriends,
-  FaCommentAlt,
   FaEllipsisV,
 } from "react-icons/fa";
-import { MdOutlineCallEnd, MdCoPresent } from "react-icons/md";
+import { MdOutlineCallEnd} from "react-icons/md";
+import { IoHandRightOutline } from "react-icons/io5";
 import { motion, AnimatePresence } from "framer-motion";
 import "./Footer.css";
 
 interface FooterProps {
   leaveRoom: () => void;
   roomId: string;
-  username: string; // Added username prop
+  username: string;
 }
 
 interface Emoji {
   emoji: string;
   x: number;
   id: string;
-  username: string; // Added username field
+  username: string;
 }
 
 const Footer: React.FC<FooterProps> = ({ leaveRoom, roomId, username }) => {
@@ -41,7 +41,9 @@ const Footer: React.FC<FooterProps> = ({ leaveRoom, roomId, username }) => {
   const [emojis, setEmojis] = useState<Emoji[]>([]);
   const [micError, setMicError] = useState(false);
   const [micAccessRequested, setMicAccessRequested] = useState(false);
-  const [lastEmojiTime, setLastEmojiTime] = useState<number>(0); // State for managing delay
+  const [lastEmojiTime, setLastEmojiTime] = useState<number>(0);
+  const [handRaised, setHandRaised] = useState(false);
+  const [showNotification, setShowNotification] = useState(false);
 
   const emojiIdRef = useRef(0);
 
@@ -52,7 +54,6 @@ const Footer: React.FC<FooterProps> = ({ leaveRoom, roomId, username }) => {
     return () => clearInterval(intervalId);
   }, []);
 
- 
   const requestMicAccess = async () => {
     try {
       await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -71,28 +72,37 @@ const Footer: React.FC<FooterProps> = ({ leaveRoom, roomId, username }) => {
     setMicOn(prevMicOn => !prevMicOn);
   };
 
-
   const handleLeave = () => {
     setShowDialog(true);
   };
 
   const handleEmojiClick = (emoji: string, event: React.MouseEvent<HTMLButtonElement>) => {
     const currentTime = Date.now();
-    if (currentTime - lastEmojiTime > 1000) { // 1 second delay
+    if (currentTime - lastEmojiTime > 1000) {
       const x = event.clientX;
       const newEmoji: Emoji = {
         emoji,
         x,
         id: `emoji-${emojiIdRef.current++}`,
-        username, // Include username
+        username,
       };
 
       setEmojis((prev) => [...prev, newEmoji]);
-      setLastEmojiTime(currentTime); // Update last emoji click time
+      setLastEmojiTime(currentTime);
 
       setTimeout(() => {
         setEmojis((prev) => prev.filter((e) => e.id !== newEmoji.id));
       }, 3000);
+    }
+  };
+
+  const toggleHandRaise = () => {
+    setHandRaised(prev => !prev);
+    if (!handRaised) {
+      setShowNotification(true);
+      const audio = new Audio('/path/to/notification-sound.mp3');
+      audio.play();
+      setTimeout(() => setShowNotification(false), 3000);
     }
   };
 
@@ -111,10 +121,13 @@ const Footer: React.FC<FooterProps> = ({ leaveRoom, roomId, username }) => {
         </div>
         <div className="flex items-center space-x-4 justify-center flex-grow">
           <ControlButton icon={micOn ? FaMicrophone : FaMicrophoneSlash} onClick={toggleMic} error={micError} />
-          <ControlButton icon={MdCoPresent} onClick={() => {}} />
           <EmojiButton onEmojiClick={handleEmojiClick} />
+          <ControlButton 
+            icon={IoHandRightOutline} 
+            onClick={toggleHandRaise} 
+            active={handRaised}
+          />
           <ControlButton icon={FaUserFriends} onClick={() => {}} />
-          <ControlButton icon={FaCommentAlt} onClick={() => {}} />
           <ControlButton icon={FaEllipsisV} onClick={() => {}} />
           <Button 
             variant="destructive" 
@@ -126,7 +139,7 @@ const Footer: React.FC<FooterProps> = ({ leaveRoom, roomId, username }) => {
             <MdOutlineCallEnd className="w-6 h-6" />
           </Button>
         </div>
-        <div className="w-[56px]"></div> {/* Spacer to balance the layout */}
+        <div className="w-[56px]"></div>
       </motion.footer>
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogTrigger />
@@ -144,16 +157,31 @@ const Footer: React.FC<FooterProps> = ({ leaveRoom, roomId, username }) => {
           <motion.div
             key={e.id}
             initial={{ opacity: 1, y: 0 }}
-            animate={{ opacity: 1, y: -100 }} // Faster movement
+            animate={{ opacity: 1, y: -100 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 1.5 }} // Shorter duration
+            transition={{ duration: 1.5 }}
             style={{ position: 'fixed', left: e.x, bottom: '120px' }}
             className="pointer-events-none flex flex-col items-center"
           >
             <span className="text-4xl">{e.emoji}</span>
-            <span className="text-md text-black-100">{e.username}</span> {/* Improved visibility */}
+            <span className="text-md text-black-100">{e.username}</span>
           </motion.div>
         ))}
+      </AnimatePresence>
+      <AnimatePresence>
+        {showNotification && (
+          <motion.div
+            initial={{ opacity: 0, y: -50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -50 }}
+            className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50"
+          >
+            <div className="bg-blue-500 text-white px-6 py-3 rounded-full shadow-lg flex items-center space-x-2">
+              <IoHandRightOutline className="w-6 h-6" />
+              <span className="font-semibold">{username} raised their hand</span>
+            </div>
+          </motion.div>
+        )}
       </AnimatePresence>
     </>
   );
@@ -163,14 +191,15 @@ interface ControlButtonProps {
   icon: React.ElementType;
   onClick: () => void;
   error?: boolean;
+  active?: boolean;
 }
 
-const ControlButton: React.FC<ControlButtonProps> = ({ icon: Icon, onClick, error }) => (
+const ControlButton: React.FC<ControlButtonProps> = ({ icon: Icon, onClick, error, active }) => (
   <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
     <Button 
       variant="ghost" 
       size="icon" 
-      className="text-white bg-[#3c4043] hover:bg-[#4a4d51] rounded-full"
+      className={`text-white ${active ? 'bg-blue-500' : 'bg-[#3c4043]'} hover:bg-[#4a4d51] rounded-full`}
       onClick={onClick}
       style={{ width: '56px', height: '56px', padding: '0' }}
     >

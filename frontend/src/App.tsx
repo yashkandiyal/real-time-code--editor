@@ -5,6 +5,7 @@ import RoomPage from "./myComponents/room/RoomPage";
 import Pricing from "./myComponents/HomePageComponents.tsx/Pricing";
 import Changelog from "./myComponents/HomePageComponents.tsx/Changelog";
 import Docs from "./myComponents/HomePageComponents.tsx/Docs";
+
 const App = () => {
   return (
     <div className="bg-white text-black dark:bg-gray-800 dark:text-white h-full">

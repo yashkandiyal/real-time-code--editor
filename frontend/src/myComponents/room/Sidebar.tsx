@@ -1,7 +1,9 @@
 import React, { useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "../../shadcn/components/ui/button";
-import { FaPlus, FaTimes, FaChevronRight, FaUser, FaEnvelope, FaComment, FaCog, FaBars, FaChevronDown } from "react-icons/fa";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "../../shadcn/components/ui/sheet";
+import { Input } from "../../shadcn/components/ui/input";
+import { FaPlus, FaTimes, FaChevronRight, FaUser, FaEnvelope, FaComment, FaCog, FaBars, FaChevronDown, FaPaperPlane } from "react-icons/fa";
 import { Avatar, AvatarFallback, AvatarImage } from "../../shadcn/components/ui/avatar";
 
 interface ParticipantsProps {
@@ -85,11 +87,75 @@ const InviteModal = ({
   );
 };
 
+// New Comment interface
+interface Comment {
+  id: number;
+  username: string;
+  message: string;
+  timestamp: Date;
+}
+
+// Updated Comments Component
+const Comments = () => {
+  const [comments, setComments] = useState<Comment[]>([
+    { id: 1, username: "User1", message: "This is a sample comment", timestamp: new Date() },
+    { id: 2, username: "User2", message: "Another comment here", timestamp: new Date() },
+  ]);
+  const [newComment, setNewComment] = useState("");
+
+  const handleSubmitComment = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newComment.trim()) {
+      const comment: Comment = {
+        id: comments.length + 1,
+        username: "CurrentUser", // Replace with actual logged-in username
+        message: newComment.trim(),
+        timestamp: new Date(),
+      };
+      setComments([...comments, comment]);
+      setNewComment("");
+    }
+  };
+
+  return (
+    <div className="flex flex-col h-full">
+      <div className="flex-grow overflow-y-auto p-4">
+        {comments.map((comment) => (
+          <div key={comment.id} className="mb-4 bg-gray-100 p-3 rounded-lg">
+            <div className="flex items-center justify-between mb-2">
+              <span className="font-semibold">{comment.username}</span>
+              <span className="text-xs text-gray-500">
+                {comment.timestamp.toLocaleString()}
+              </span>
+            </div>
+            <p>{comment.message}</p>
+          </div>
+        ))}
+      </div>
+      <form onSubmit={handleSubmitComment} className="p-4 bg-white border-t">
+        <div className="flex items-center">
+          <Input
+            type="text"
+            placeholder="Type your comment..."
+            value={newComment}
+            onChange={(e) => setNewComment(e.target.value)}
+            className="flex-grow mr-2"
+          />
+          <Button type="submit" size="icon">
+            <FaPaperPlane />
+          </Button>
+        </div>
+      </form>
+    </div>
+  );
+};
+
 // Main Sidebar Component
 const Sidebar = ({ participants, isAuthor, handleRemove, handleInvite }: ParticipantsProps) => {
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCommentsOpen, setIsCommentsOpen] = useState(false);
 
   const uniqueParticipants = Array.from(new Set(participants));
 
@@ -136,7 +202,39 @@ const Sidebar = ({ participants, isAuthor, handleRemove, handleInvite }: Partici
     {
       name: "Comments",
       icon: <FaComment />,
-      subcategories: [], 
+      subcategories: [],
+      actions: () => (
+        <Sheet open={isCommentsOpen} onOpenChange={setIsCommentsOpen}>
+          <SheetTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsCommentsOpen(true)}
+              className="ml-2 p-2 rounded-full focus:outline-none focus:ring-2"
+            >
+              <FaComment className="h-5 w-5" />
+              <span className="sr-only">Open comments</span>
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="right" className="w-[400px] sm:w-[540px] flex flex-col">
+            <SheetHeader className="flex-shrink-0">
+              <SheetTitle>Comments</SheetTitle>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsCommentsOpen(false)}
+                className="absolute top-4 right-4"
+              >
+                <FaTimes className="h-5 w-5" />
+                <span className="sr-only">Close comments</span>
+              </Button>
+            </SheetHeader>
+            <div className="flex-grow overflow-hidden">
+              <Comments />
+            </div>
+          </SheetContent>
+        </Sheet>
+      )
     },
     {
       name: "Settings",
@@ -170,7 +268,9 @@ const Sidebar = ({ participants, isAuthor, handleRemove, handleInvite }: Partici
                   className="w-full flex items-center justify-between p-2 hover:bg-gray-200 rounded"
                   onClick={() => {
                     if (category.name === "Invite") {
-                      setIsModalOpen(true); // 
+                      setIsModalOpen(true);
+                    } else if (category.name === "Comments") {
+                      setIsCommentsOpen(true);
                     } else {
                       toggleCategory(category.name);
                     }
@@ -180,23 +280,25 @@ const Sidebar = ({ participants, isAuthor, handleRemove, handleInvite }: Partici
                     {category.icon}
                     {isSidebarOpen && <span className="ml-2">{category.name}</span>}
                   </div>
-                  {isSidebarOpen && (expandedCategory === category.name ? <FaChevronDown /> : <FaChevronRight />)}
+                  {isSidebarOpen && category.subcategories.length > 0 && (expandedCategory === category.name ? <FaChevronDown /> : <FaChevronRight />)}
                 </button>
-                {isSidebarOpen && expandedCategory === category.name && category.name !== "Invite" && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="ml-6 mt-1"
-                  >
-                    {category.subcategories.map((subcategory, index) => (
-                      <div key={index} className="py-1 px-2 hover:bg-gray-200 rounded text-sm flex justify-between items-center">
-                        <span>{subcategory}</span>
-                        {category.actions && category.actions(subcategory)}
-                      </div>
-                    ))}
-                  </motion.div>
-                )}
+                <AnimatePresence>
+                  {isSidebarOpen && expandedCategory === category.name && category.name !== "Invite" && category.name !== "Comments" && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="ml-6 mt-1"
+                    >
+                      {category.subcategories.map((subcategory, index) => (
+                        <div key={index} className="py-1 px-2 hover:bg-gray-200 rounded text-sm flex justify-between items-center">
+                          <span>{subcategory}</span>
+                          {category.actions && category.actions(subcategory)}
+                        </div>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             ))}
           </div>
@@ -207,11 +309,31 @@ const Sidebar = ({ participants, isAuthor, handleRemove, handleInvite }: Partici
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onInvite={(email) => {
-          console.log("Inviting email:", email); // Debugging log
+          console.log("Inviting email:", email);
           handleInvite(email);
           setIsModalOpen(false);
         }}
       />
+
+      <Sheet open={isCommentsOpen} onOpenChange={setIsCommentsOpen}>
+        <SheetContent side="right" className="w-[400px] sm:w-[540px] flex flex-col">
+          <SheetHeader className="flex-shrink-0">
+            <SheetTitle>Comments</SheetTitle>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsCommentsOpen(false)}
+              className="absolute top-4 right-4"
+            >
+              <FaTimes className="h-5 w-5" />
+              <span className="sr-only">Close comments</span>
+            </Button>
+          </SheetHeader>
+          <div className="flex-grow overflow-hidden">
+            <Comments />
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };
