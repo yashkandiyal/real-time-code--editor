@@ -30,7 +30,8 @@ const ExistingRoomPageModal = ({isUserLoggedIn}:ExistingRoomPageModalProps) => {
       navigate(`/room/${roomId}`, {
         state: {
           username,
-          roomId
+          roomId,
+          isAuthorr: false,
         },
       });
     }
