@@ -3,7 +3,7 @@ import { io, Socket } from "socket.io-client";
 class SocketService {
   private socket: Socket | null = null;
 
-  connect(username: string, isAuthor: boolean, roomId: string): Socket {
+  connect(username: string, isAuthor: boolean): Socket {
     if (!this.socket) {
       const options = {
         forceNew: true,
@@ -24,8 +24,15 @@ class SocketService {
       });
     }
 
-    this.socket.emit("joinRoom", { roomId, username, isAuthor });
     return this.socket;
+  }
+
+  joinRoom(roomId: string, username: string, isAuthor: boolean): void {
+    if (this.socket) {
+      this.socket.emit("joinRoom", { roomId, username, isAuthor });
+    } else {
+      console.error("Socket not connected. Call connect() first.");
+    }
   }
 
   disconnect(): void {
@@ -44,6 +51,12 @@ class SocketService {
   on(event: string, callback: (data: any) => void): void {
     if (this.socket) {
       this.socket.on(event, callback);
+    }
+  }
+
+  once(event: string, callback: (data: any) => void): void {
+    if (this.socket) {
+      this.socket.once(event, callback);
     }
   }
 

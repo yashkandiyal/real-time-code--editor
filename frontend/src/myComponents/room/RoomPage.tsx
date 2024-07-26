@@ -29,8 +29,8 @@ export default function RoomPage() {
   const [notifications, setNotifications] = useState<string[]>([]);
 
   useEffect(() => {
-    socketService.connect(username, isAuthorr, roomId);
-
+    socketService.connect(username, isAuthorr);
+    socketService.joinRoom(roomId, username, isAuthorr);
     socketService.on("currentParticipants", (participants: string[]) => {
       setParticipants(participants);
     });
@@ -65,8 +65,8 @@ export default function RoomPage() {
 
     socketService.on("userLeft", ({ username }) => {
       setParticipants((prev) => prev.filter((p) => p !== username));
-      if (username === currentUsername.current) {
-        toast.error("You left the room.");
+      toast.error(`${username} has left the room.`);
+      if (username === currentUsername.current && !isAuthorr) {
         navigate("/");
       }
     });
@@ -86,15 +86,6 @@ export default function RoomPage() {
       toast.error(`${username} has been removed from the room.`);
     });
 
-    socketService.on("userLeftWillingly", ({ username }) => {
-      setParticipants((prev) => prev.filter((p) => p !== username));
-      if (username === currentUsername.current) {
-        navigate("/");
-        return;
-      }
-      toast.error(`${username} has left the room.`);
-    });
-
     socketService.on("newMessage", ({ sender, message, timestamp }) => {
       setMessages((prev) => [
         ...prev,
@@ -104,9 +95,7 @@ export default function RoomPage() {
 
     socketService.on("disconnect", () => {
       toast.error("Disconnected from server");
-      if (isAuthorr) {
-        socketService.emit("closeRoom", { roomId });
-      }
+      navigate("/");
     });
 
     return () => {
@@ -153,6 +142,9 @@ export default function RoomPage() {
 
   const leaveRoom = () => {
     socketService.emit("leaveRoom", { roomId, username });
+    if (isAuthorr) {
+      navigate("/");
+    }
   };
 
   const sendMessage = (message: string) => {
@@ -194,15 +186,12 @@ export default function RoomPage() {
     );
   }
 
-  console.log("Current notifications:", notifications);
-
   return (
     <div className="flex flex-col h-screen w-full">
       <Navbar />
       <Toaster position="top-center" reverseOrder={false} />
       <main className="flex flex-1 overflow-hidden">
         <div className="flex flex-1">
-          
           <EditorPage className="flex-1 w-full" onFullscreenToggle={() => {}} />
           <Sidebar
             participants={participants}
