@@ -211,6 +211,7 @@ export default function RoomPage() {
             handleInvite={handleInvite}
             messages={messages}
             sendMessage={sendMessage}
+            currentUser={username}
           />
         </div>
       </main>
