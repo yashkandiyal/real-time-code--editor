@@ -4,7 +4,7 @@ import { DEV_FRONTEND_URL } from "./config/env";
 class RoomManager {
   private rooms: Map<string, Set<string>> = new Map();
   private joinRequests: Map<string, Set<string>> = new Map();
-  private roomAuthors: Map<string, string> = new Map();
+  public roomAuthors: Map<string, string> = new Map();
 
   createRoom(roomId: string, author: string) {
     this.rooms.set(roomId, new Set([author]));
@@ -24,12 +24,12 @@ class RoomManager {
     const room = this.rooms.get(roomId);
     if (room) {
       room.delete(username);
-      if (room.size === 0) {
+      if (room.size === 0 || this.roomAuthors.get(roomId) === username) {
         this.deleteRoom(roomId);
-      } else if (this.roomAuthors.get(roomId) === username) {
-        this.setNewAuthor(roomId);
+        return true; // Indicate that the room was deleted
       }
     }
+    return false; // Indicate that the room was not deleted
   }
 
   addJoinRequest(roomId: string, username: string) {
@@ -38,16 +38,6 @@ class RoomManager {
 
   removeJoinRequest(roomId: string, username: string) {
     this.joinRequests.get(roomId)?.delete(username);
-  }
-
-  setNewAuthor(roomId: string) {
-    const room = this.rooms.get(roomId);
-    if (room && room.size > 0) {
-      const newAuthor = room.values().next().value;
-      this.roomAuthors.set(roomId, newAuthor);
-      return newAuthor;
-    }
-    return null;
   }
 
   deleteRoom(roomId: string) {
@@ -100,16 +90,24 @@ const initializeSocket = (server: any) => {
     userManager.addUser(username, socket);
 
     socket.on("joinRoom", ({ roomId, username, isAuthor }) => {
-      console.log(`User ${username} joining room ${roomId}`);
+      console.log(`User ${username} joining room ${roomId} as ${isAuthor}`);
 
       if (!roomManager.roomExists(roomId)) {
-        roomManager.createRoom(roomId, username);
+        console.log(`Room ${roomId} does not exist, creating...`);
+
+        if (isAuthor) {
+          roomManager.createRoom(roomId, username);
+        } else {
+          socket.emit("roomJoinError", { message: "Room does not exist" });
+          return;
+        }
       }
 
       if (isAuthor || username === roomManager.getAuthor(roomId)) {
         socket.join(roomId);
         roomManager.addParticipant(roomId, username);
         socket.emit("currentParticipants", roomManager.getParticipants(roomId));
+        socket.emit("joinRoomSuccess", { roomId });
       } else {
         roomManager.addJoinRequest(roomId, username);
         const authorSocket = userManager.getSocket(
@@ -144,32 +142,56 @@ const initializeSocket = (server: any) => {
 
     socket.on("removeParticipant", ({ roomId, username }) => {
       console.log(`Removing ${username} from room ${roomId}`);
-      roomManager.removeParticipant(roomId, username);
+      const roomDeleted = roomManager.removeParticipant(roomId, username);
       const removedUserSocket = userManager.getSocket(username);
       removedUserSocket?.leave(roomId);
       removedUserSocket?.emit("youWereRemoved", { roomId });
-      io.to(roomId).emit("userRemoved", { username });
 
-      const newAuthor = roomManager.setNewAuthor(roomId);
-      if (newAuthor) {
-        io.to(roomId).emit("newAuthor", { username: newAuthor });
+      if (roomDeleted) {
+        io.to(roomId).emit("roomClosed", false);
       } else {
-        io.to(roomId).emit("roomClosed");
+        io.to(roomId).emit("userRemoved", { username });
       }
     });
 
     socket.on("leaveRoom", ({ roomId, username }) => {
       console.log(`${username} leaving room ${roomId}`);
-      roomManager.removeParticipant(roomId, username);
-      io.to(roomId).emit("userLeftWillingly", { username });
+
+      console.log(
+        `Participants in room ${roomId}: ${roomManager.getParticipants(roomId)}`
+      );
+
       if (username === roomManager.getAuthor(roomId)) {
         roomManager.deleteRoom(roomId);
-        io.to(roomId).emit("roomClosed");
+        console.log(`Room ${roomId} deleted`);
+        io.to(roomId).emit("roomClosed", false);
+      } else {
+        roomManager.removeParticipant(roomId, username);
+        io.to(roomId).emit("userLeft", { username });
       }
+    });
+
+    socket.on("RoomExists", ({ roomId }) => {
+      console.log(`Checking if room ${roomId} exists`);
+      const status = roomManager.roomExists(roomId);
+      console.log("status of the room:", status);
+      io.emit("roomStatus", { roomExists: status });
     });
 
     socket.on("disconnect", () => {
       console.log(`User ${username} disconnected`);
+
+      // Find all rooms where this user is the author
+      for (const [roomId, author] of roomManager.roomAuthors.entries()) {
+        if (author === username) {
+          console.log(
+            `Deleting room ${roomId} as author ${username} disconnected`
+          );
+          roomManager.deleteRoom(roomId);
+          io.to(roomId).emit("roomClosed", false);
+        }
+      }
+
       userManager.removeUser(username);
       io.emit("userDisconnected", { username });
     });
