@@ -9,6 +9,12 @@ import {
 } from "../../shadcn/components/ui/dialog";
 import { Button } from "../../shadcn/components/ui/button";
 import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "../../shadcn/components/ui/dropdown-menu";
+import {
   FaMicrophone,
   FaMicrophoneSlash,
   FaSmile,
@@ -16,8 +22,8 @@ import {
   FaUserFriends,
   FaEllipsisV,
 } from "react-icons/fa";
-import { MdOutlineCallEnd} from "react-icons/md";
-import { IoHandRightOutline } from "react-icons/io5";
+import { MdOutlineCallEnd } from "react-icons/md";
+import { IoHandRightOutline, IoChatbox } from "react-icons/io5";
 import { motion, AnimatePresence } from "framer-motion";
 import "./Footer.css";
 
@@ -25,6 +31,8 @@ interface FooterProps {
   leaveRoom: () => void;
   roomId: string;
   username: string;
+  toggleSidebar: (type: "participants" | "messages") => void;
+  sidebarType: "participants" | "messages" | "none";
 }
 
 interface Emoji {
@@ -34,7 +42,13 @@ interface Emoji {
   username: string;
 }
 
-const Footer: React.FC<FooterProps> = ({ leaveRoom, roomId, username }) => {
+const Footer: React.FC<FooterProps> = ({
+  leaveRoom,
+  roomId,
+  username,
+  toggleSidebar,
+  sidebarType,
+}) => {
   const [micOn, setMicOn] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -44,6 +58,8 @@ const Footer: React.FC<FooterProps> = ({ leaveRoom, roomId, username }) => {
   const [lastEmojiTime, setLastEmojiTime] = useState<number>(0);
   const [handRaised, setHandRaised] = useState(false);
   const [showNotification, setShowNotification] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
   const emojiIdRef = useRef(0);
 
@@ -52,6 +68,20 @@ const Footer: React.FC<FooterProps> = ({ leaveRoom, roomId, username }) => {
       setCurrentTime(new Date());
     }, 1000);
     return () => clearInterval(intervalId);
+  }, []);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth);
+      if (window.innerWidth <= 768) {
+        setShowDropdown(true);
+      } else {
+        setShowDropdown(false);
+      }
+    };
+    window.addEventListener("resize", handleResize);
+    handleResize(); // Initial check
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   const requestMicAccess = async () => {
@@ -69,14 +99,17 @@ const Footer: React.FC<FooterProps> = ({ leaveRoom, roomId, username }) => {
       setMicAccessRequested(true);
       await requestMicAccess();
     }
-    setMicOn(prevMicOn => !prevMicOn);
+    setMicOn((prevMicOn) => !prevMicOn);
   };
 
   const handleLeave = () => {
     setShowDialog(true);
   };
 
-  const handleEmojiClick = (emoji: string, event: React.MouseEvent<HTMLButtonElement>) => {
+  const handleEmojiClick = (
+    emoji: string,
+    event: React.MouseEvent<HTMLButtonElement>
+  ) => {
     const currentTime = Date.now();
     if (currentTime - lastEmojiTime > 1000) {
       const x = event.clientX;
@@ -97,10 +130,10 @@ const Footer: React.FC<FooterProps> = ({ leaveRoom, roomId, username }) => {
   };
 
   const toggleHandRaise = () => {
-    setHandRaised(prev => !prev);
+    setHandRaised((prev) => !prev);
     if (!handRaised) {
       setShowNotification(true);
-      const audio = new Audio('/path/to/notification-sound.mp3');
+      const audio = new Audio("/path/to/notification-sound.mp3");
       audio.play();
       setTimeout(() => setShowNotification(false), 3000);
     }
@@ -108,47 +141,106 @@ const Footer: React.FC<FooterProps> = ({ leaveRoom, roomId, username }) => {
 
   return (
     <>
-      <motion.footer 
+      <motion.footer
         initial={{ y: 100 }}
         animate={{ y: 0 }}
         transition={{ type: "spring", stiffness: 100 }}
-        className="bg-[#202124] py-4 px-6 flex items-center justify-between bottom-0 left-0 right-0 z-50 shadow-lg"
+        className="bg-gray-800 py-2 px-6 flex items-center justify-between fixed bottom-0 left-0 right-0 z-50 shadow-lg"
       >
-        <div className="flex items-center space-x-1 text-gray-400 text-lg">
-          <span>{currentTime.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false })}</span>
+        <div
+          className={`flex items-center space-x-1 text-gray-400 text-lg ${
+            showDropdown ? "hidden md:flex" : ""
+          }`}
+        >
+          <span>
+            {currentTime.toLocaleTimeString("en-GB", {
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: false,
+            })}
+          </span>
           <span>|</span>
           <span>{roomId}</span>
         </div>
         <div className="flex items-center space-x-4 justify-center flex-grow">
-          <ControlButton icon={micOn ? FaMicrophone : FaMicrophoneSlash} onClick={toggleMic} error={micError} />
-          <EmojiButton onEmojiClick={handleEmojiClick} />
-          <ControlButton 
-            icon={IoHandRightOutline} 
-            onClick={toggleHandRaise} 
-            active={handRaised}
+          {windowWidth > 768 && (
+            <ControlButton
+              icon={FaSmile}
+              onClick={(e) => handleEmojiClick("😊", e)}
+            />
+          )}
+          {windowWidth > 500 && (
+            <ControlButton
+              icon={IoHandRightOutline}
+              onClick={toggleHandRaise}
+              active={handRaised}
+            />
+          )}
+          <ControlButton
+            icon={micOn ? FaMicrophone : FaMicrophoneSlash}
+            onClick={toggleMic}
+            error={micError}
           />
-          <ControlButton icon={FaUserFriends} onClick={() => {}} />
-          <ControlButton icon={FaEllipsisV} onClick={() => {}} />
-          <Button 
-            variant="destructive" 
-            size="icon" 
+          <ControlButton
+            icon={FaUserFriends}
+            onClick={() => toggleSidebar("participants")}
+            active={sidebarType === "participants"}
+          />
+          <ControlButton
+            icon={IoChatbox}
+            onClick={() => toggleSidebar("messages")}
+            active={sidebarType === "messages"}
+          />
+          {showDropdown && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="text-white">
+                  <FaEllipsisV className="w-6 h-6" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                className="bg-gray-800 border border-gray-600"
+              >
+                {windowWidth <= 768 && (
+                  <DropdownMenuItem onClick={(e) => handleEmojiClick("😊", e)}>
+                    <FaSmile className="w-6 h-6 mr-2" />
+                    Emoji
+                  </DropdownMenuItem>
+                )}
+                {windowWidth <= 500 && (
+                  <DropdownMenuItem onClick={toggleHandRaise}>
+                    <IoHandRightOutline className="w-6 h-6 mr-2" />
+                    {handRaised ? "Lower Hand" : "Raise Hand"}
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+          <Button
+            variant="destructive"
+            size="icon"
             className="bg-red-600 hover:bg-red-700 text-white rounded-full"
             onClick={handleLeave}
-            style={{ width: '56px', height: '56px', padding: '0' }}
+            style={{ width: "56px", height: "56px", padding: "0" }}
           >
             <MdOutlineCallEnd className="w-6 h-6" />
           </Button>
         </div>
-        <div className="w-[56px]"></div>
+        {!showDropdown && <div className="w-[56px]"></div>}
       </motion.footer>
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogTrigger />
         <DialogContent>
           <DialogTitle>Confirm Leave</DialogTitle>
-          <DialogDescription>Are you sure you want to leave the meeting?</DialogDescription>
+          <DialogDescription>
+            Are you sure you want to leave the meeting?
+          </DialogDescription>
           <DialogFooter>
             <Button onClick={() => setShowDialog(false)}>Cancel</Button>
-            <Button variant="destructive" onClick={leaveRoom}>Leave</Button>
+            <Button variant="destructive" onClick={leaveRoom}>
+              Leave
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -160,7 +252,7 @@ const Footer: React.FC<FooterProps> = ({ leaveRoom, roomId, username }) => {
             animate={{ opacity: 1, y: -100 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 1.5 }}
-            style={{ position: 'fixed', left: e.x, bottom: '120px' }}
+            style={{ position: "fixed", left: e.x, bottom: "120px" }}
             className="pointer-events-none flex flex-col items-center"
           >
             <span className="text-4xl">{e.emoji}</span>
@@ -168,77 +260,29 @@ const Footer: React.FC<FooterProps> = ({ leaveRoom, roomId, username }) => {
           </motion.div>
         ))}
       </AnimatePresence>
-      <AnimatePresence>
-        {showNotification && (
-          <motion.div
-            initial={{ opacity: 0, y: -50 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -50 }}
-            className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50"
-          >
-            <div className="bg-blue-500 text-white px-6 py-3 rounded-full shadow-lg flex items-center space-x-2">
-              <IoHandRightOutline className="w-6 h-6" />
-              <span className="font-semibold">{username} raised their hand</span>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </>
   );
+
 };
 
-interface ControlButtonProps {
-  icon: React.ElementType;
+const ControlButton: React.FC<{
+  icon: React.ComponentType;
   onClick: () => void;
-  error?: boolean;
   active?: boolean;
-}
-
-const ControlButton: React.FC<ControlButtonProps> = ({ icon: Icon, onClick, error, active }) => (
-  <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-    <Button 
-      variant="ghost" 
-      size="icon" 
-      className={`text-white ${active ? 'bg-blue-500' : 'bg-[#3c4043]'} hover:bg-[#4a4d51] rounded-full`}
-      onClick={onClick}
-      style={{ width: '56px', height: '56px', padding: '0' }}
-    >
-      <Icon className="w-6 h-6" />
-      {error && <FaExclamationCircle className="text-red-600 absolute top-0 right-0 text-sm" />}
-    </Button>
-  </motion.div>
-);
-
-interface EmojiButtonProps {
-  onEmojiClick: (emoji: string, event: React.MouseEvent<HTMLButtonElement>) => void;
-}
-
-const EmojiButton: React.FC<EmojiButtonProps> = ({ onEmojiClick }) => (
-  <div className="relative group">
-    <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-      <Button 
-        variant="ghost" 
-        size="icon" 
-        className="text-white bg-[#3c4043] hover:bg-[#4a4d51] rounded-full"
-        style={{ width: '56px', height: '56px', padding: '0' }}
-      >
-        <FaSmile className="w-6 h-6" />
-      </Button>
-    </motion.div>
-    <div className="absolute left-1/2 bottom-full mb-2 w-auto bg-[#3c4043] text-white rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity -translate-x-1/2 p-2 flex">
-      {["❤️", "👍", "🎉", "👏", "😂", "😭", "😮", "😢", "🤔", "👎"].map((emoji) => (
-        <motion.button
-          key={emoji}
-          className="text-2xl m-1 hover:bg-[#4a4d51] rounded p-1"
-          onClick={(event: React.MouseEvent<HTMLButtonElement>) => onEmojiClick(emoji, event)}
-          whileHover={{ scale: 1.2 }}
-          whileTap={{ scale: 0.8 }}
-        >
-          {emoji}
-        </motion.button>
-      ))}
-    </div>
-  </div>
+  error?: boolean;
+}> = ({ icon: Icon, onClick, active = false, error = false }) => (
+  <Button
+    onClick={onClick}
+    size="icon"
+    className={`relative ${
+      error ? "bg-red-600" : active ? "bg-green-600" : "bg-gray-700"
+    } hover:bg-gray-600 text-white`}
+  >
+    <Icon className="w-6 h-6" />
+    {error && (
+      <FaExclamationCircle className="absolute top-0 right-0 w-4 h-4 text-red-500" />
+    )}
+  </Button>
 );
 
 export default Footer;

@@ -27,7 +27,18 @@ export default function RoomPage() {
   const [isPending, setIsPending] = useState<boolean>(!isAuthorr);
   const [messages, setMessages] = useState<Message[]>([]);
   const [notifications, setNotifications] = useState<string[]>([]);
+  const [sidebarType, setSidebarType] = useState<
+    "participants" | "messages" | "none"
+  >("none");
 
+  const toggleSidebar = (type: "participants" | "messages" | "none") => {
+    setSidebarType((prev) => {
+      if (prev === type) {
+        return "none"; // Hide the sidebar if the same icon is clicked again
+      }
+      return type; // Show the respective sidebar
+    });
+  };
   useEffect(() => {
     socketService.connect(username, isAuthorr);
     socketService.joinRoom(roomId, username, isAuthorr);
@@ -181,7 +192,7 @@ export default function RoomPage() {
   if (isPending) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
-        Waiting for approval to join the room...
+        Waiting for approval to join the room ⏳
       </div>
     );
   }
@@ -190,7 +201,7 @@ export default function RoomPage() {
     <div className="flex flex-col h-screen w-full">
       <Navbar />
       <Toaster position="top-center" reverseOrder={false} />
-      <main className="flex flex-1 overflow-hidden">
+      <main className="flex flex-1 overflow-scroll">
         <div className="flex flex-1">
           <EditorPage className="flex-1 w-full" onFullscreenToggle={() => {}} />
           <Sidebar
@@ -201,10 +212,18 @@ export default function RoomPage() {
             messages={messages}
             sendMessage={sendMessage}
             currentUser={username}
+            sidebarType={sidebarType}
+            toggleSidebar={toggleSidebar}
           />
         </div>
       </main>
-      <Footer leaveRoom={leaveRoom} roomId={roomId} username={username} />
+      <Footer
+        leaveRoom={leaveRoom}
+        roomId={roomId}
+        username={username}
+        toggleSidebar={toggleSidebar}
+        sidebarType={sidebarType}
+      />
       {notifications.map((notification, index) => (
         <div
           key={index}
