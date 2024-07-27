@@ -10,11 +10,12 @@ import {
 } from "../../shadcn/components/ui/dialog";
 import { Input } from "../../shadcn/components/ui/input";
 import { Label } from "../../shadcn/components/ui/label";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { nanoid } from "nanoid";
 import toast, { Toaster } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { MdContentCopy } from "react-icons/md"; // Importing MdContentCopy icon
+import socketService from "../../services/SocketService"; // Import socketService
 
 interface NewRoomPageModalProps {
   isUserLoggedIn: boolean;
@@ -26,6 +27,17 @@ const NewRoomPageModal = ({ isUserLoggedIn }: NewRoomPageModalProps) => {
   const [roomId, setRoomId] = useState<string | null>("");
   const [username, setUsername] = useState<string | null>("");
   const navigate = useNavigate();
+
+  useEffect(() => {
+    // Ensure the socket is connected when username is set
+    if (username) {
+      socketService.connect(username, true);
+    }
+    // Clean up socket connection on component unmount
+    return () => {
+      socketService.disconnect();
+    };
+  }, [username]);
 
   // This function is used to generate unique room id
   const generateRoomId = () => {
@@ -43,9 +55,12 @@ const NewRoomPageModal = ({ isUserLoggedIn }: NewRoomPageModalProps) => {
 
   const navigateToRoom = () => {
     if (!roomId || !username) {
-      toast.error("Please enter room id and username");
+      toast.error("Please enter room ID and username");
       return;
     } else {
+      // Emit joinRoom event before navigating
+      socketService.emit("joinRoom", { roomId, username, isAuthor: true });
+
       navigate(`/room/${roomId}`, {
         state: {
           username,
@@ -73,18 +88,18 @@ const NewRoomPageModal = ({ isUserLoggedIn }: NewRoomPageModalProps) => {
       <Toaster position="top-center" reverseOrder={false} />
       <Dialog>
         <DialogTrigger asChild>
-        <Button 
-          onClick={navigateUserToLogin} 
-          className="bg-blue-500 hover:bg-blue-700 text-white text-xl sm:text-2xl px-4 py-6 rounded-lg"
-        >
-          Create new room
-        </Button>
+          <Button
+            onClick={navigateUserToLogin}
+            className="bg-blue-500 hover:bg-blue-700 text-white text-xl sm:text-2xl px-4 py-6 rounded-lg"
+          >
+            Create new room
+          </Button>
         </DialogTrigger>
         <DialogContent className="sm:max-w-[425px] p-6 text-black dark:text-white">
           <DialogHeader>
-            <DialogTitle >Create your new room</DialogTitle>
+            <DialogTitle>Create your new room</DialogTitle>
             <DialogDescription>
-              Click on generate to create a new room Id.
+              Click on generate to create a new room ID.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4 text-black dark:text-white">
