@@ -1,79 +1,7 @@
 import { Server, Socket } from "socket.io";
 import { DEV_FRONTEND_URL } from "./config/env";
-
-class RoomManager {
-  private rooms: Map<string, Set<string>> = new Map();
-  private joinRequests: Map<string, Set<string>> = new Map();
-  public roomAuthors: Map<string, string> = new Map();
-
-  createRoom(roomId: string, author: string) {
-    this.rooms.set(roomId, new Set([author]));
-    this.joinRequests.set(roomId, new Set());
-    this.roomAuthors.set(roomId, author);
-  }
-
-  addParticipant(roomId: string, username: string) {
-    const room = this.rooms.get(roomId);
-    if (room) {
-      room.add(username);
-      this.joinRequests.get(roomId)?.delete(username);
-    }
-  }
-
-  removeParticipant(roomId: string, username: string) {
-    const room = this.rooms.get(roomId);
-    if (room) {
-      room.delete(username);
-      if (room.size === 0 || this.roomAuthors.get(roomId) === username) {
-        this.deleteRoom(roomId);
-        return true; // Indicate that the room was deleted
-      }
-    }
-    return false; // Indicate that the room was not deleted
-  }
-
-  addJoinRequest(roomId: string, username: string) {
-    this.joinRequests.get(roomId)?.add(username);
-  }
-
-  removeJoinRequest(roomId: string, username: string) {
-    this.joinRequests.get(roomId)?.delete(username);
-  }
-
-  deleteRoom(roomId: string) {
-    this.rooms.delete(roomId);
-    this.joinRequests.delete(roomId);
-    this.roomAuthors.delete(roomId);
-  }
-
-  getParticipants(roomId: string): string[] {
-    return Array.from(this.rooms.get(roomId) || []);
-  }
-
-  getAuthor(roomId: string): string | undefined {
-    return this.roomAuthors.get(roomId);
-  }
-
-  roomExists(roomId: string): boolean {
-    return this.rooms.has(roomId);
-  }
-}
-
-class UserManager {
-  private userSockets: Map<string, Socket> = new Map();
-
-  addUser(username: string, socket: Socket) {
-    this.userSockets.set(username, socket);
-  }
-
-  removeUser(username: string) {
-    this.userSockets.delete(username);
-  }
-
-  getSocket(username: string): Socket | undefined {
-    return this.userSockets.get(username);
-  }
-}
+import RoomManager from "./managers/roomManager";
+import UserManager from "./managers/userManager";
 
 const initializeSocket = (server: any) => {
   const io = new Server(server, {
@@ -176,6 +104,12 @@ const initializeSocket = (server: any) => {
       const status = roomManager.roomExists(roomId);
       console.log("status of the room:", status);
       io.emit("roomStatus", { roomExists: status });
+    });
+
+    socket.on("codeChange", ({ content, roomId, username }) => {
+      console.log(`Code change in room ${roomId} by ${username} : ${content}`);
+
+      io.in(roomId).emit("codeUpdate", { content, sender: username });
     });
 
     socket.on("disconnect", () => {
