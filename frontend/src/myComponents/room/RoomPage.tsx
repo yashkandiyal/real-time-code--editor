@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import EditorPage from "./EditorPage";
-import Footer from "./Footer";
+import EditorPage from "./EditorPage/MainEditorPage";
+import Footer from "../Footer/Footer";
 import Sidebar from "./Sidebar";
 import { Toaster } from "react-hot-toast";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -18,7 +18,13 @@ interface Message {
 export default function RoomPage() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { username, isAuthorr } = location.state;
+  const { username, isAuthorr } = location.state || {};
+
+  useEffect(() => {
+    if (!username || isAuthorr == null) {
+      navigate(`/not-logged-in/${roomId}`);
+    }
+  }, [username, isAuthorr, navigate]);
   const roomId = location.pathname.split("/")[2];
   const currentUsername = useRef<string>(username);
 
@@ -203,7 +209,13 @@ export default function RoomPage() {
       <Toaster position="top-center" reverseOrder={false} />
       <main className="flex flex-1 overflow-scroll">
         <div className="flex flex-1">
-          <EditorPage className="flex-1 w-full" onFullscreenToggle={() => {}} roomId={roomId} username={username} isAuthor={isAuthorr} />
+          <EditorPage
+            className="flex-1 w-full"
+            onFullscreenToggle={() => {}}
+            roomId={roomId}
+            username={username}
+            isAuthor={isAuthorr}
+          />
           <Sidebar
             participants={participants}
             isAuthor={isAuthorr}
