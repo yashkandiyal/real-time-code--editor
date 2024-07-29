@@ -16,6 +16,7 @@ import toast, { Toaster } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { MdContentCopy } from "react-icons/md"; // Importing MdContentCopy icon
 import socketService from "../../services/SocketService"; // Import socketService
+import { useUser } from "@clerk/clerk-react";
 
 interface NewRoomPageModalProps {
   isUserLoggedIn: boolean;
@@ -27,24 +28,22 @@ const NewRoomPageModal = ({ isUserLoggedIn }: NewRoomPageModalProps) => {
   const [roomId, setRoomId] = useState<string | null>("");
   const [username, setUsername] = useState<string | null>("");
   const navigate = useNavigate();
+  const { user } = useUser();
+  const userEmailAddress = user?.emailAddresses[0].emailAddress;
 
   useEffect(() => {
-    // Ensure the socket is connected when username is set
     if (username) {
       socketService.connect(username, true);
     }
-    // Clean up socket connection on component unmount
     return () => {
       socketService.disconnect();
     };
   }, [username]);
 
-  // This function is used to generate unique room id
   const generateRoomId = () => {
     setRoomId(nanoid());
   };
 
-  // This function is used to copy the room ID to clipboard
   const copyRoomIdToClipboard = () => {
     if (roomId) {
       navigator.clipboard.writeText(roomId).then(() => {
@@ -57,17 +56,16 @@ const NewRoomPageModal = ({ isUserLoggedIn }: NewRoomPageModalProps) => {
     if (!roomId || !username) {
       toast.error("Please enter room ID and username");
       return;
-    } else {
-      // Emit joinRoom event before navigating
-      socketService.emit("joinRoom", { roomId, username, isAuthor: true });
-
-      navigate(`/room/${roomId}`, {
-        state: {
-          username,
-          isAuthorr: true,
-        },
-      });
     }
+
+    socketService.emit("joinRoom", { roomId, username, isAuthor: true });
+
+    navigate(`/room/${roomId}`, {
+      state: {
+        username,
+        isAuthorr: true,
+      },
+    });
   };
 
   const EnterKey = (event: any) => {

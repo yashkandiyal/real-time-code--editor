@@ -4,7 +4,7 @@ class SocketService {
   private socket: Socket | null = null;
 
   connect(username: string, isAuthor: boolean): Socket {
-    if (!this.socket) {
+    if (!this.socket || this.socket.disconnected) {
       const options = {
         forceNew: true,
         reconnectionAttempts: Infinity,
@@ -26,7 +26,6 @@ class SocketService {
 
     return this.socket;
   }
-
   joinRoom(roomId: string, username: string, isAuthor: boolean): void {
     if (this.socket) {
       this.socket.emit("joinRoom", { roomId, username, isAuthor });
@@ -34,7 +33,6 @@ class SocketService {
       console.error("Socket not connected. Call connect() first.");
     }
   }
-
   disconnect(): void {
     if (this.socket) {
       this.socket.disconnect();

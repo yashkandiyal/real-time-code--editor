@@ -203,7 +203,7 @@ export default function RoomPage() {
       <Toaster position="top-center" reverseOrder={false} />
       <main className="flex flex-1 overflow-scroll">
         <div className="flex flex-1">
-          <EditorPage className="flex-1 w-full" onFullscreenToggle={() => {}} />
+          <EditorPage className="flex-1 w-full" onFullscreenToggle={() => {}} roomId={roomId} username={username} isAuthor={isAuthorr} />
           <Sidebar
             participants={participants}
             isAuthor={isAuthorr}
