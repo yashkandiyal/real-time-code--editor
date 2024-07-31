@@ -1,8 +1,9 @@
 import { Webhook } from "svix";
 import bodyParser from "body-parser";
-import { WEBHOOK_SECRET} from "../config/env";
+import { WEBHOOK_SECRET } from "../config/env";
 import app from "..";
 import { Request, Response } from "express";
+
 app.post(
   "/api/webhooks",
   // This is a generic method to parse the contents of the payload.
@@ -11,7 +12,7 @@ app.post(
   bodyParser.raw({ type: "application/json" }),
   async function (req: Request, res: Response) {
     // You can find this in the Clerk Dashboard -> Webhooks -> choose the webhook
-    
+
     if (!WEBHOOK_SECRET) {
       throw new Error("You need a WEBHOOK_SECRET in your .env");
     }
@@ -46,7 +47,7 @@ app.post(
         "svix-timestamp": svix_timestamp,
         "svix-signature": svix_signature,
       });
-    } catch (err:any) {
+    } catch (err: any) {
       console.log("Error verifying webhook:", err.message);
       return res.status(400).json({
         success: false,
@@ -58,9 +59,7 @@ app.post(
     // For this guide, you simply log the payload to the console
     const { id } = evt.data;
     const eventType = evt.type;
-    if(eventType==="user.created"){
-        console.log(eventType);
-        
+    if (eventType === "user.created") {
     }
     console.log(`Webhook with an ID of ${id} and type of ${eventType}`);
     console.log("Webhook body:", evt.data);

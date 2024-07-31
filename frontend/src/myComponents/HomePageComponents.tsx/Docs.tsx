@@ -1,3 +1,4 @@
+//@ts-nocheck
 import { useState } from 'react';
 import Alert, { AlertTitle, AlertDescription } from '../../shadcn/components/ui/Alert';
 // import { Collapsible } from '../../shadcn/components/ui/collapsible';

@@ -15,75 +15,102 @@ interface Message {
   timestamp: Date;
 }
 
+interface JoinRequest {
+  username: string;
+  email: string;
+}
+
+interface Participant {
+  username: string;
+  email: string;
+}
+
 export default function RoomPage() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { username, isAuthorr } = location.state || {};
+  const { username, authorStatus, userEmailAddress } = location.state || {};
+  console.log(
+    "username:",
+    username,
+    "authorStatus:",
+    authorStatus,
+    "userEmailAddress:",
+    userEmailAddress
+  );
 
-  useEffect(() => {
-    if (!username || isAuthorr == null) {
-      navigate(`/not-logged-in/${roomId}`);
-    }
-  }, [username, isAuthorr, navigate]);
   const roomId = location.pathname.split("/")[2];
   const currentUsername = useRef<string>(username);
 
-  const [participants, setParticipants] = useState<string[]>([]);
-  const [joinRequests, setJoinRequests] = useState<string[]>([]);
-  const [isPending, setIsPending] = useState<boolean>(!isAuthorr);
+  const [participants, setParticipants] = useState<Participant[]>([]);
+  const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([]);
+  const [isPending, setIsPending] = useState<boolean>(!authorStatus);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [notifications, setNotifications] = useState<string[]>([]);
+  const [notifications, setNotifications] = useState<JoinRequest[]>([]);
   const [sidebarType, setSidebarType] = useState<
     "participants" | "messages" | "none"
   >("none");
 
   const toggleSidebar = (type: "participants" | "messages" | "none") => {
-    setSidebarType((prev) => {
-      if (prev === type) {
-        return "none"; // Hide the sidebar if the same icon is clicked again
-      }
-      return type; // Show the respective sidebar
-    });
+    setSidebarType((prev) => (prev === type ? "none" : type));
   };
+
   useEffect(() => {
-    socketService.connect(username, isAuthorr);
-    socketService.joinRoom(roomId, username, isAuthorr);
-    socketService.on("currentParticipants", (participants: string[]) => {
+    if (!username || authorStatus == null) {
+      navigate(`/not-logged-in/${roomId}`);
+    }
+  }, [username, authorStatus, navigate, roomId]);
+
+  useEffect(() => {
+    socketService.connect(username, authorStatus);
+    socketService.joinRoom(roomId, username, authorStatus, userEmailAddress);
+
+    socketService.on("currentParticipants", (participants: Participant[]) => {
       setParticipants(participants);
     });
 
-    socketService.on("joinRequest", ({ username }) => {
-      if (isAuthorr) {
-        setJoinRequests((prev) => [...prev, username]);
+    socketService.on("joinRequest", (joinRequest: JoinRequest) => {
+      if (authorStatus) {
+        setJoinRequests((prev) => [...prev, joinRequest]);
       }
     });
 
-    socketService.on("joinRequestApproved", (approvedRoomId) => {
-      if (approvedRoomId === roomId && !isAuthorr) {
+    socketService.on("joinRequestApproved", (approvedRoomId: string) => {
+      if (approvedRoomId === roomId && !authorStatus) {
         setIsPending(false);
         toast.success("Your join request has been approved.");
       }
     });
 
-    socketService.on("joinRequestRejected", (rejectedRoomId) => {
-      if (rejectedRoomId === roomId && !isAuthorr) {
+    socketService.on("joinRequestRejected", (rejectedRoomId: string) => {
+      if (rejectedRoomId === roomId && !authorStatus) {
         setIsPending(false);
         toast.error("Your join request has been rejected.");
         navigate("/");
       }
     });
 
-    socketService.on("userJoined", ({ username }) => {
-      setParticipants((prev) => [...prev, username]);
-      if (username !== currentUsername.current) {
-        toast.success(`${username} has joined the room.`);
+    socketService.on("userJoined", (participant: Participant) => {
+      setParticipants((prev) => {
+        const participantExists = prev.some(
+          (p) =>
+            p.username === participant.username && p.email === participant.email
+        );
+        if (!participantExists) {
+          return [...prev, participant];
+        }
+        return prev;
+      });
+      if (participant.username !== currentUsername.current) {
+        toast.success(`${participant.username} has joined the room.`);
       }
     });
 
-    socketService.on("userLeft", ({ username }) => {
-      setParticipants((prev) => prev.filter((p) => p !== username));
-      toast.error(`${username} has left the room.`);
-      if (username === currentUsername.current && !isAuthorr) {
+    socketService.on("userLeft", (participant: Participant) => {
+      setParticipants((prev) =>
+        prev.filter((p) => p.username !== participant.username)
+      );
+      toast.error(`${participant.username} has left the room.`);
+      if (participant.username === currentUsername.current && !authorStatus) {
         navigate("/");
       }
     });
@@ -98,9 +125,11 @@ export default function RoomPage() {
       navigate("/");
     });
 
-    socketService.on("userRemoved", ({ username }) => {
-      setParticipants((prev) => prev.filter((p) => p !== username));
-      toast.error(`${username} has been removed from the room.`);
+    socketService.on("userRemoved", (participant: Participant) => {
+      setParticipants((prev) =>
+        prev.filter((p) => p.username !== participant.username)
+      );
+      toast.error(`${participant.username} has been removed from the room.`);
     });
 
     socketService.on("newMessage", ({ sender, message, timestamp }) => {
@@ -118,80 +147,130 @@ export default function RoomPage() {
     return () => {
       socketService.disconnect();
     };
-  }, [roomId, username, navigate, isAuthorr]);
+  }, [roomId, username, navigate, authorStatus]);
 
   useEffect(() => {
     currentUsername.current = username;
   }, [username]);
 
   useEffect(() => {
-    if (isAuthorr && joinRequests.length > 0) {
+    if (authorStatus && joinRequests.length > 0) {
       console.log("Join requests received:", joinRequests);
+
       setNotifications((prevNotifications) => {
         const newNotifications = joinRequests.filter(
-          (request) => !prevNotifications.includes(request)
+          (request) =>
+            !prevNotifications.some(
+              (n) =>
+                n.username === request.username && n.email === request.email
+            )
         );
+
         console.log("New notifications:", newNotifications);
+
         return [...prevNotifications, ...newNotifications];
       });
     }
-  }, [isAuthorr, joinRequests]);
+  }, [authorStatus, joinRequests]);
 
-  const handleApprove = (username: string) => {
-    if (isAuthorr) {
-      socketService.emit("approveJoinRequest", { roomId, username });
-      setJoinRequests((prev) => prev.filter((user) => user !== username));
+  console.log("user requests:", joinRequests);
+
+  const handleApprove = (notification: JoinRequest) => {
+    if (authorStatus) {
+      socketService.emit("approveJoinRequest", { roomId, ...notification });
+      setJoinRequests((prev) =>
+        prev.filter(
+          (user) =>
+            user.username !== notification.username ||
+            (user.email !== notification.email &&
+              notification.email !== undefined)
+        )
+      );
     }
   };
 
-  const handleReject = (username: string) => {
-    if (isAuthorr) {
-      socketService.emit("rejectJoinRequest", { roomId, username });
-      setJoinRequests((prev) => prev.filter((user) => user !== username));
+  const handleReject = (notification: JoinRequest) => {
+    if (authorStatus) {
+      socketService.emit("rejectJoinRequest", { roomId, ...notification });
+      setJoinRequests((prev) =>
+        prev.filter(
+          (user) =>
+            user.username !== notification.username ||
+            (user.email !== notification.email &&
+              notification.email !== undefined)
+        )
+      );
     }
   };
 
   const handleRemove = (username: string) => {
-    if (isAuthorr) {
+    if (authorStatus) {
       socketService.emit("removeParticipant", { roomId, username });
     }
   };
 
   const leaveRoom = () => {
     socketService.emit("leaveRoom", { roomId, username });
-    if (isAuthorr) {
+    if (authorStatus) {
       navigate("/");
     }
   };
 
   const sendMessage = (message: string) => {
-    socketService.emit("sendMessage", { roomId, message, sender: username });
+    socketService.emit("sendMessage", {
+      roomId,
+      message,
+      sender: username,
+      timestamp: new Date(),
+    });
   };
 
   const handleInvite = () => {
     // Handle invite functionality
   };
 
-  const handleNotificationApprove = (approvedUser: string) => {
+  const handleNotificationApprove = (approvedUser: JoinRequest) => {
     console.log("Approving user:", approvedUser);
     handleApprove(approvedUser);
-    setNotifications((prevNotifications) =>
-      prevNotifications.filter((notification) => notification !== approvedUser)
-    );
+
+    setNotifications((prevNotifications) => {
+      const updatedNotifications = prevNotifications.filter(
+        (notification) =>
+          notification.username !== approvedUser.username ||
+          (notification.email !== approvedUser.email &&
+            approvedUser.email !== undefined)
+      );
+
+      console.log("Updated Notifications after approve:", updatedNotifications);
+
+      return updatedNotifications;
+    });
   };
 
-  const handleNotificationReject = (rejectedUser: string) => {
+  const handleNotificationReject = (rejectedUser: JoinRequest) => {
     console.log("Rejecting user:", rejectedUser);
     handleReject(rejectedUser);
-    setNotifications((prevNotifications) =>
-      prevNotifications.filter((notification) => notification !== rejectedUser)
-    );
+
+    setNotifications((prevNotifications) => {
+      const updatedNotifications = prevNotifications.filter(
+        (notification) =>
+          notification.username !== rejectedUser.username ||
+          (notification.email !== rejectedUser.email &&
+            rejectedUser.email !== undefined)
+      );
+
+      console.log("Updated Notifications after reject:", updatedNotifications);
+
+      return updatedNotifications;
+    });
   };
 
   const handleNotificationClose = (closedUser: string) => {
     console.log("Closing notification for user:", closedUser);
     setNotifications((prevNotifications) =>
-      prevNotifications.filter((notification) => notification !== closedUser)
+      prevNotifications.filter(
+        (notification) => notification.username !== closedUser
+      )
     );
   };
 
@@ -214,11 +293,11 @@ export default function RoomPage() {
             onFullscreenToggle={() => {}}
             roomId={roomId}
             username={username}
-            isAuthor={isAuthorr}
+            isAuthor={authorStatus}
           />
           <Sidebar
             participants={participants}
-            isAuthor={isAuthorr}
+            isAuthor={authorStatus}
             handleRemove={handleRemove}
             handleInvite={handleInvite}
             messages={messages}
@@ -243,10 +322,11 @@ export default function RoomPage() {
           style={{ top: `${5 + index * 80}px` }}
         >
           <Notification
-            username={notification}
+            username={notification.username}
+            email={notification.email}
             onApprove={() => handleNotificationApprove(notification)}
             onReject={() => handleNotificationReject(notification)}
-            onClose={() => handleNotificationClose(notification)}
+            onClose={() => handleNotificationClose(notification.username)}
             show={true}
           />
         </div>

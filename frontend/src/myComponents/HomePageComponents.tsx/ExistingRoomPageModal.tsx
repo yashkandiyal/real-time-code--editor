@@ -19,28 +19,32 @@ interface ExistingRoomPageModalProps {
   isUserLoggedIn: boolean;
   children?: React.ReactNode;
   className?: string;
+  currentLoggedinUsername?: string;
+  userEmailAddress: string;
 }
 
 const ExistingRoomPageModal = ({
   isUserLoggedIn,
+  currentLoggedinUsername,
+  userEmailAddress,
 }: ExistingRoomPageModalProps) => {
   const [roomId, setRoomId] = useState<string>("");
-  const [username, setUsername] = useState<string>("");
+
   const navigate = useNavigate();
 
   useEffect(() => {
     // Ensure the socket is connected
-    if (username) {
-      socketService.connect(username, false);
+    if (currentLoggedinUsername) {
+      socketService.connect(currentLoggedinUsername, false);
     }
     // Clean up socket connection on component unmount
     return () => {
       socketService.disconnect();
     };
-  }, [username, roomId]);
+  }, [currentLoggedinUsername, roomId]);
 
   const navigateToRoom = () => {
-    if (!roomId || !username) {
+    if (!roomId || !currentLoggedinUsername) {
       toast.error("Please enter room ID and username");
       return;
     }
@@ -54,13 +58,19 @@ const ExistingRoomPageModal = ({
           toast.error("Room does not exist.");
         } else {
           // Emit joinRoom event after confirming the room exists
-          socketService.emit("joinRoom", { roomId, username, isAuthor: false });
+          socketService.emit("joinRoom", {
+            roomId,
+            username: currentLoggedinUsername,
+            isAuthor: false,
+            email: userEmailAddress,
+          });
 
           navigate(`/room/${roomId}`, {
             state: {
-              username,
+              username: currentLoggedinUsername,
               roomId,
-              isAuthorr: false,
+              authorStatus: false,
+              userEmailAddress,
             },
           });
         }
@@ -120,8 +130,7 @@ const ExistingRoomPageModal = ({
                 id="username"
                 placeholder="Enter your Username"
                 className="col-span-3"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                value={currentLoggedinUsername}
               />
             </div>
           </div>

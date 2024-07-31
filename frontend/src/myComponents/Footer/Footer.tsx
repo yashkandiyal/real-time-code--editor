@@ -73,11 +73,7 @@ const Footer: React.FC<FooterProps> = ({
   useEffect(() => {
     const handleResize = () => {
       setWindowWidth(window.innerWidth);
-      if (window.innerWidth <= 768) {
-        setShowDropdown(true);
-      } else {
-        setShowDropdown(false);
-      }
+      setShowDropdown(window.innerWidth <= 768);
     };
     window.addEventListener("resize", handleResize);
     handleResize(); // Initial check
@@ -162,11 +158,13 @@ const Footer: React.FC<FooterProps> = ({
           <span>|</span>
           <span>{roomId}</span>
         </div>
-        <div className="flex items-center space-x-4 justify-center flex-grow">
+        <div className="flex items-center space-x-4 md:pr-36 justify-center flex-grow">
           {windowWidth > 768 && (
             <ControlButton
               icon={FaSmile}
-              onClick={(e) => handleEmojiClick("😊", e)}
+              onClick={(e: React.MouseEvent<HTMLButtonElement>) =>
+                handleEmojiClick("😊", e)
+              }
             />
           )}
           {windowWidth > 500 && (
@@ -203,7 +201,9 @@ const Footer: React.FC<FooterProps> = ({
                 className="bg-gray-800 border border-gray-600"
               >
                 {windowWidth <= 768 && (
-                  <DropdownMenuItem onClick={(e) => handleEmojiClick("😊", e)}>
+                  <DropdownMenuItem
+                    onClick={(e: any) => handleEmojiClick("😊", e)}
+                  >
                     <FaSmile className="w-6 h-6 mr-2" />
                     Emoji
                   </DropdownMenuItem>
@@ -231,19 +231,32 @@ const Footer: React.FC<FooterProps> = ({
       </motion.footer>
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogTrigger />
-        <DialogContent>
-          <DialogTitle>Confirm Leave</DialogTitle>
-          <DialogDescription>
+        <DialogContent className="max-w-lg sm:max-w-xl bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 sm:p-8 md:p-10">
+          <DialogTitle className="text-2xl font-semibold text-red-600 dark:text-red-400">
+            Confirm Leave
+          </DialogTitle>
+          <DialogDescription className="mt-4 text-base text-gray-600 dark:text-gray-400">
             Are you sure you want to leave the meeting?
           </DialogDescription>
-          <DialogFooter>
-            <Button onClick={() => setShowDialog(false)}>Cancel</Button>
-            <Button variant="destructive" onClick={leaveRoom}>
+          <DialogFooter className="mt-8 flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-4">
+            <Button
+              variant="outline"
+              onClick={() => setShowDialog(false)}
+              className="w-full sm:w-auto px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-600"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={leaveRoom}
+              className="w-full sm:w-auto px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 dark:bg-red-700 dark:hover:bg-red-600"
+            >
               Leave
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
       <AnimatePresence>
         {emojis.map((e) => (
           <motion.div
@@ -262,12 +275,11 @@ const Footer: React.FC<FooterProps> = ({
       </AnimatePresence>
     </>
   );
-
 };
 
 const ControlButton: React.FC<{
-  icon: React.ComponentType;
-  onClick: () => void;
+  icon: React.FC<React.SVGProps<SVGSVGElement>>;
+  onClick: (e: React.MouseEvent<HTMLButtonElement>) => void;
   active?: boolean;
   error?: boolean;
 }> = ({ icon: Icon, onClick, active = false, error = false }) => (

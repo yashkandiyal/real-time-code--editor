@@ -2,9 +2,13 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import Chat from "./chat";
 import ParticipantsSidebar from "./ParticipantsSidebar";
+interface Participant{
+  username: string;
+  email: string;
 
+}
 interface SidebarProps {
-  participants: string[];
+  participants: Participant[];
   isAuthor: boolean;
   handleRemove: (username: string) => void;
   handleInvite: () => void;
@@ -12,7 +16,7 @@ interface SidebarProps {
   sendMessage: (message: string) => void;
   currentUser: string;
   sidebarType: "participants" | "messages" | "none";
-  toggleSidebar: (type: "participants" | "messages"|"none") => void;
+  toggleSidebar: (type: "participants" | "messages" | "none") => void;
 }
 
 const Sidebar = ({
@@ -23,8 +27,7 @@ const Sidebar = ({
   sidebarType,
   messages,
   sendMessage,
-  toggleSidebar
-  
+  toggleSidebar,
 }: SidebarProps) => {
   const [isScreenMobile, setIsScreenMobile] = useState(false);
 
@@ -49,13 +52,13 @@ const Sidebar = ({
       animate={{ x: 0 }}
       exit={{ x: isScreenMobile ? 0 : "100%" }}
       transition={{ type: "spring", stiffness: 300, damping: 30 }}
-      className={`px-4 ${
+      className={`px-4 h-screen ${
         isScreenMobile
           ? "w-full min-w-full fixed top-0 bottom-0 right-0  py-6 border-l border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 transition-transform duration-300 ease-in-out"
           : "w-full max-w-xs"
       }`}
     >
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col h-screen">
         {sidebarType === "participants" ? (
           <ParticipantsSidebar
             participants={participants}
