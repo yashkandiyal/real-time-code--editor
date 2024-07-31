@@ -7,11 +7,13 @@ class RoomManager {
   private rooms: Map<string, Set<Participant>> = new Map();
   private joinRequests: Map<string, Set<Participant>> = new Map();
   public roomAuthors: Map<string, Participant> = new Map();
+  private blockedUsers: Map<string, Set<string>> = new Map();
 
   createRoom(roomId: string, author: Participant) {
     this.rooms.set(roomId, new Set([author]));
     this.joinRequests.set(roomId, new Set());
     this.roomAuthors.set(roomId, author);
+    this.blockedUsers.set(roomId, new Set()); // Initialize the blocked users list for the room
   }
 
   addParticipant(roomId: string, participant: Participant) {
@@ -77,6 +79,7 @@ class RoomManager {
     this.rooms.delete(roomId);
     this.joinRequests.delete(roomId);
     this.roomAuthors.delete(roomId);
+    this.blockedUsers.delete(roomId); 
   }
 
   getParticipants(roomId: string): Participant[] {
@@ -93,6 +96,27 @@ class RoomManager {
 
   getJoinRequests(roomId: string): Participant[] {
     return Array.from(this.joinRequests.get(roomId) || []);
+  }
+
+  addUserToBlockedList(roomId: string, email: string) {
+    const blockedList = this.blockedUsers.get(roomId);
+    if (blockedList) {
+      blockedList.add(email);
+    } else {
+      this.blockedUsers.set(roomId, new Set([email]));
+    }
+  }
+
+  isUserBlocked(roomId: string, email: string): boolean {
+    const blockedList = this.blockedUsers.get(roomId);
+    return blockedList ? blockedList.has(email) : false;
+  }
+
+  getBlockedUsers(roomId: string): string[] {
+    const blockedList = this.blockedUsers.get(roomId);
+    console.log("getBlockedUsers: ", blockedList);
+    
+    return blockedList ? Array.from(blockedList) : [];
   }
 }
 

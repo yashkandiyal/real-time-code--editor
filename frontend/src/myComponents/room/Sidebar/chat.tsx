@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Button } from "../../shadcn/components/ui/button";
-import { Input } from "../../shadcn/components/ui/input";
+import { Button } from "../../../shadcn/components/ui/button";
+import { Input } from "../../../shadcn/components/ui/input";
 import { FaPaperPlane, FaThumbtack, FaTimes } from "react-icons/fa";
-import { Switch } from "../../shadcn/components/ui/switch";
-import { Card } from "../../shadcn/components/ui/card";
-import { ScrollArea } from "../../shadcn/components/ui/scroll-area";
+import { Switch } from "../../../shadcn/components/ui/switch";
+import { Card } from "../../../shadcn/components/ui/card";
+import { ScrollArea } from "../../../shadcn/components/ui/scroll-area";
 import { Separator } from "@radix-ui/react-select";
 
 interface Message {

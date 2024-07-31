@@ -29,7 +29,7 @@ const ExistingRoomPageModal = ({
   userEmailAddress,
 }: ExistingRoomPageModalProps) => {
   const [roomId, setRoomId] = useState<string>("");
-
+  const [isBlocked, setIsBlocked] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -41,7 +41,7 @@ const ExistingRoomPageModal = ({
     return () => {
       socketService.disconnect();
     };
-  }, [currentLoggedinUsername, roomId]);
+  }, [currentLoggedinUsername]);
 
   const navigateToRoom = () => {
     if (!roomId || !currentLoggedinUsername) {
@@ -49,39 +49,55 @@ const ExistingRoomPageModal = ({
       return;
     }
 
-    // Set up the event listener for room status
-    socketService.on(
-      "roomStatus",
-      ({ roomExists }: { roomExists: boolean }) => {
-        console.log("Room status:", roomExists);
-        if (!roomExists) {
-          toast.error("Room does not exist.");
-        } else {
-          // Emit joinRoom event after confirming the room exists
-          socketService.emit("joinRoom", {
-            roomId,
-            username: currentLoggedinUsername,
-            isAuthor: false,
-            email: userEmailAddress,
-          });
-
-          navigate(`/room/${roomId}`, {
-            state: {
-              username: currentLoggedinUsername,
-              roomId,
-              authorStatus: false,
-              userEmailAddress,
-            },
-          });
-        }
-
-        // Clean up event listener after response
-        socketService.off("roomStatus");
-      }
-    );
-
     // Emit the RoomExists event to check if the room exists
     socketService.emit("RoomExists", { roomId });
+
+    // Set up the event listener for room status
+    socketService.once(
+      "roomStatus",
+      ({ roomExists }: { roomExists: boolean }) => {
+        if (!roomExists) {
+          toast.error("Room does not exist.");
+          return;
+        }
+
+        // Emit checkBlockedStatus event before joining the room
+        socketService.emit("checkBlockedStatus", {
+          roomId,
+          email: userEmailAddress,
+        });
+
+        // Set up the event listener for blocked status
+        socketService.once(
+          "blockedStatus",
+          ({ isBlocked }: { isBlocked: boolean }) => {
+            if (isBlocked) {
+              setIsBlocked(isBlocked);
+              toast.error("You are not allowed to join this room");
+              return;
+            }
+
+            // Emit joinRoom event after confirming the user is not blocked
+            socketService.emit("joinRoom", {
+              roomId,
+              username: currentLoggedinUsername,
+              isAuthor: false,
+              email: userEmailAddress,
+            });
+
+            // Redirect if not blocked
+            navigate(`/room/${roomId}`, {
+              state: {
+                username: currentLoggedinUsername,
+                roomId,
+                authorStatus: false,
+                userEmailAddress,
+              },
+            });
+          }
+        );
+      }
+    );
   };
 
   const navigateUserToLogin = () => {
