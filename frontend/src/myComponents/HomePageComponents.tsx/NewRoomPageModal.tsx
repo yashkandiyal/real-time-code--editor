@@ -16,29 +16,32 @@ import toast, { Toaster } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { MdContentCopy } from "react-icons/md"; // Importing MdContentCopy icon
 import socketService from "../../services/SocketService"; // Import socketService
-import { useUser } from "@clerk/clerk-react";
 
 interface NewRoomPageModalProps {
   isUserLoggedIn: boolean;
   children?: React.ReactNode;
   className?: string;
+  currentLoggedinUsername?: string;
+  userEmailAddress: string;
 }
 
-const NewRoomPageModal = ({ isUserLoggedIn }: NewRoomPageModalProps) => {
+const NewRoomPageModal = ({
+  isUserLoggedIn,
+  currentLoggedinUsername,
+  userEmailAddress,
+}: NewRoomPageModalProps) => {
   const [roomId, setRoomId] = useState<string | null>("");
-  const [username, setUsername] = useState<string | null>("");
+
   const navigate = useNavigate();
-  const { user } = useUser();
-  const userEmailAddress = user?.emailAddresses[0].emailAddress;
 
   useEffect(() => {
-    if (username) {
-      socketService.connect(username, true);
+    if (currentLoggedinUsername) {
+      socketService.connect(currentLoggedinUsername!, true);
     }
     return () => {
       socketService.disconnect();
     };
-  }, [username]);
+  }, [currentLoggedinUsername]);
 
   const generateRoomId = () => {
     setRoomId(nanoid());
@@ -53,17 +56,23 @@ const NewRoomPageModal = ({ isUserLoggedIn }: NewRoomPageModalProps) => {
   };
 
   const navigateToRoom = () => {
-    if (!roomId || !username) {
+    if (!roomId || !currentLoggedinUsername) {
       toast.error("Please enter room ID and username");
       return;
     }
 
-    socketService.emit("joinRoom", { roomId, username, isAuthor: true });
+    socketService.emit("joinRoom", {
+      roomId,
+      username: currentLoggedinUsername,
+      isAuthor: true,
+      email: userEmailAddress,
+    });
 
     navigate(`/room/${roomId}`, {
       state: {
-        username,
-        isAuthorr: true,
+        username: currentLoggedinUsername,
+        authorStatus: true,
+        userEmailAddress,
       },
     });
   };
@@ -124,9 +133,8 @@ const NewRoomPageModal = ({ isUserLoggedIn }: NewRoomPageModalProps) => {
               <Label htmlFor="username">Username</Label>
               <Input
                 id="username"
-                value={username || ""}
+                value={currentLoggedinUsername}
                 placeholder="Enter your Username"
-                onChange={(e) => setUsername(e.target.value)}
                 onKeyUp={EnterKey}
               />
             </div>

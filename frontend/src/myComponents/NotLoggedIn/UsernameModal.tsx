@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React from "react";
 import { Button } from "../../shadcn/components/ui/button";
 import {
   Dialog,
@@ -8,35 +8,41 @@ import {
   DialogTitle,
 } from "../../shadcn/components/ui/dialog";
 import { Input } from "../../shadcn/components/ui/input";
+
 interface UsernameModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (username: string) => void;
+  currentLoggedinUsername: string;
 }
+
 const UsernameModal: React.FC<UsernameModalProps> = ({
   isOpen,
   onClose,
   onSubmit,
+  currentLoggedinUsername,
 }) => {
-  const [username, setUsername] = useState("");
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Set Your Username</DialogTitle>
+          <DialogTitle>Confirm Your Username</DialogTitle>
         </DialogHeader>
         <div className="grid gap-4 py-4">
+          <p>You will join the room with the following username:</p>
           <Input
             id="username"
-            placeholder="Enter your username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
+            value={currentLoggedinUsername}
+            readOnly
+            className="cursor-not-allowed"
           />
         </div>
         <DialogFooter>
-          <Button onClick={() => onSubmit(username)} variant="default">
-            Submit
+          <Button
+            onClick={() => onSubmit(currentLoggedinUsername)}
+            variant="default"
+          >
+            Join Room
           </Button>
         </DialogFooter>
       </DialogContent>

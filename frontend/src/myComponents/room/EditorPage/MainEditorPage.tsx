@@ -87,44 +87,7 @@ const EditorPage: React.FC<EditorPageProps> = ({
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
-  const darkTheme = EditorView.theme({
-    "&": {
-      backgroundColor: "#1e1e1e", // Deep dark gray for background
-      color: "#e0e0e0", // Light gray for text
-    },
-    ".cm-content": {
-      caretColor: "#e0e0e0", // Light gray for caret
-    },
-    ".cm-gutters": {
-      backgroundColor: "#2c2c2c", // Slightly lighter gray for gutters
-      color: "#8c8c8c", // Gray for gutter text
-    },
-    ".cm-activeLine": {
-      backgroundColor: "#333333", // Darker gray for active line
-    },
-    ".cm-selectionBackground": {
-      backgroundColor: "#4a8fd4", // Soft blue for selection background
-    },
-  });
-  const lightTheme = EditorView.theme({
-    "&": {
-      backgroundColor: "#fafafa", // Very light gray for background
-      color: "#333333", // Dark gray for text
-    },
-    ".cm-content": {
-      caretColor: "#333333", // Dark gray for caret
-    },
-    ".cm-gutters": {
-      backgroundColor: "#e0e0e0", // Light gray for gutters
-      color: "#757575", // Medium gray for gutter text
-    },
-    ".cm-activeLine": {
-      backgroundColor: "#f5f5f5", // Very light gray for active line
-    },
-    ".cm-selectionBackground": {
-      backgroundColor: "#b3d9ff", // Light blue for selection background
-    },
-  });
+  const [currentTheme, setCurrentTheme] = useState("light");
 
   const debouncedEmitChange = useCallback(
     debounce((content: string, roomId: string, username: string) => {
@@ -132,6 +95,10 @@ const EditorPage: React.FC<EditorPageProps> = ({
     }, 10),
     []
   );
+  useEffect(() => {
+    const Theme = document.body.classList.contains("dark") ? "dark" : "light";
+    setCurrentTheme(Theme);
+  }, []);
 
   useEffect(() => {
     if (showAlert) {
@@ -148,10 +115,6 @@ const EditorPage: React.FC<EditorPageProps> = ({
 
   useEffect(() => {
     if (editorRef.current) {
-      const theme = document.documentElement.classList.contains("dark")
-        ? darkTheme
-        : lightTheme;
-
       const languageExtension =
         {
           javascript: javascript(),
@@ -167,7 +130,62 @@ const EditorPage: React.FC<EditorPageProps> = ({
           EditorView.lineWrapping,
           EditorView.editable.of(true),
           EditorView.contentAttributes.of({ spellcheck: "false" }),
-          theme,
+          EditorView.theme({
+            "&": {
+              backgroundColor: "#282a36", // Background color of the editor
+              color: "#f8f8f2", // Default text color
+              fontFamily: "Consolas, 'Courier New', monospace",
+              fontSize: "16px",
+              lineHeight: "1.6",
+            },
+            ".cm-content": {
+              caretColor: "#f8f8f2", // Cursor color
+            },
+            ".cm-gutters": {
+              backgroundColor: "#282a36", // Gutters background color
+              color: "#6272a4", // Line numbers color
+              border: "none",
+            },
+            ".cm-lineNumbers .cm-gutterElement": {
+              color: "#6D8A88", // Line numbers color
+            },
+            ".cm-activeLine": {
+              backgroundColor: "rgba(255,255,255,0.1)", // Active line highlight color
+            },
+            ".cm-activeLineGutter": {
+              backgroundColor: "rgba(255,255,255,0.1)", // Active line gutter highlight color
+            },
+            ".cm-selectionBackground": {
+              backgroundColor: "rgba(255, 255, 255, 0.10)", // Selection background color
+            },
+            ".cm-cursor": {
+              borderLeft: "2px solid #f8f8f2", // Cursor color
+            },
+            ".cm-matchingBracket": {
+              backgroundColor: "rgba(255, 255, 255, 0.10)",
+              outline: "1px solid #50fa7b", // Matching bracket outline color
+            },
+            ".cm-keyword": { color: "#ff79c6" }, // Keyword color
+            ".cm-operator": { color: "#ff79c6" }, // Operator color
+            ".cm-variableName": { color: "#50fa7b" }, // Variable name color
+            ".cm-variableName.definition": { color: "#50fa7b" }, // Variable definition color
+            ".cm-number": { color: "#bd93f9" }, // Number color
+            ".cm-string": { color: "#f1fa8c" }, // String color
+            ".cm-comment": { color: "#6272a4" }, // Comment color
+            ".cm-propertyName": { color: "#66d9ef" }, // Property name color
+            ".cm-function": { color: "#ff79c8" }, // Function color
+            ".cm-punctuation": { color: "#f8f8f2" }, // Punctuation color
+            ".cm-header": { color: "#ffb86c" }, // Header file color
+            ".cm-link": { color: "#8be9fd" }, // Link color
+            ".cm-meta": { color: "#f8f8f2" }, // Meta color
+            ".cm-tag": { color: "#ff79c6" }, // Tag color
+            ".cm-attribute": { color: "#50fa7b" }, // Attribute color
+            ".cm-qualifier": { color: "#50fa7b" }, // Qualifier color
+            ".cm-builtin": { color: "#50fa7b" }, // Built-in color
+            ".cm-type": { color: "#ffb86c" }, // Type color
+            ".cm-atom": { color: "#bd93f9" }, // Atom color
+            ".cm-variable-2": { color: "#ffffff" }, // Variable-2 color
+          }),
 
           EditorView.updateListener.of((update) => {
             if (update.docChanged) {
@@ -189,13 +207,12 @@ const EditorPage: React.FC<EditorPageProps> = ({
         parent: editorRef.current,
       });
 
-      // Set focus to the editor
       view.focus();
       editorRef.current.view = view;
 
       return () => view.destroy();
     }
-  }, [editorRef, language, username, debouncedEmitChange]);
+  }, [editorRef, language, username, debouncedEmitChange, currentTheme]);
 
   useEffect(() => {
     const handleCodeUpdate = ({
@@ -442,7 +459,7 @@ const EditorPage: React.FC<EditorPageProps> = ({
   };
 
   return (
-    <div className="flex flex-auto flex-col overflow-hidden bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+    <div className="flex flex-auto flex-col overflow-hidden  text-gray-900 dark:text-gray-100 p-2">
       <ResizablePanelGroup
         direction="vertical"
         className="flex-1 rounded-lg border"

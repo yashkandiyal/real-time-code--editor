@@ -6,38 +6,48 @@ import { FaCheck, FaTimes } from "react-icons/fa";
 
 interface NotificationProps {
   username: string;
+  email: string;
   onApprove: () => void;
   onReject: () => void;
   onClose: () => void;
   show: boolean;
 }
 
-const Notification = ({ username, onApprove, onReject, onClose, show }: NotificationProps) => {
+const Notification = ({
+  username,
+  email,
+  onApprove,
+  onReject,
+  onClose,
+  show,
+}: NotificationProps) => {
+  console.log("incoming user's data:", username, email);
+
   useEffect(() => {
     if (show) {
       const audio = new Audio("/join.mp3");
-      audio.play().catch(error => console.error("Error playing audio:", error));
+      audio
+        .play()
+        .catch((error) => console.error("Error playing audio:", error));
     }
   }, [show]);
 
   if (!show) return null;
 
   return (
-    <Card className="shadow-lg backdrop-blur-md bg-white/30 border border-white/20">
-      <CardContent className="p-4">
-        <div className="flex items-start space-x-4">
-          <Avatar className="h-10 w-10 bg-blue-500">
-            <AvatarFallback className="dark:text-white text-black">
-              {username.slice(0, 2).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-          <div className="space-y-1">
-            <h4 className="text-sm font-semibold">Join Request</h4>
-            <p className="text-sm text-muted-foreground">
-              <strong className="font-semibold">{username}</strong> wants to
-              join the room.
-            </p>
-          </div>
+    <Card className="shadow-lg backdrop-blur-md bg-white/30 border border-white/20 rounded-lg overflow-hidden">
+      <CardContent className="p-4 flex items-start space-x-4">
+        <Avatar className="h-12 w-12 bg-blue-500">
+          <AvatarFallback className="dark:text-white text-black">
+            {username.slice(0, 2).toUpperCase()}
+          </AvatarFallback>
+        </Avatar>
+        <div className="space-y-1">
+          <h4 className="text-sm font-semibold">Join Request</h4>
+          <p className="text-sm text-muted-foreground">
+            <strong className="font-semibold">{username}</strong> ({email})
+            wants to join the room.
+          </p>
         </div>
       </CardContent>
       <CardFooter className="flex justify-end space-x-2 bg-white/30 p-4 border-t border-white/20">
@@ -47,7 +57,7 @@ const Notification = ({ username, onApprove, onReject, onClose, show }: Notifica
             onClose();
           }}
           variant="outline"
-          className="text-destructive hover:bg-destructive/10"
+          className="text-red-600 hover:bg-red-100"
         >
           <FaTimes className="mr-2 h-4 w-4" />
           Reject
@@ -57,7 +67,7 @@ const Notification = ({ username, onApprove, onReject, onClose, show }: Notifica
             onApprove();
             onClose();
           }}
-          className="bg-green-600 hover:bg-green-700"
+          className="bg-green-600 text-white hover:bg-green-700"
         >
           <FaCheck className="mr-2 h-4 w-4" />
           Approve

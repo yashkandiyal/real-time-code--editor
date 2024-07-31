@@ -3,6 +3,11 @@ import { DEV_FRONTEND_URL } from "./config/env";
 import RoomManager from "./managers/roomManager";
 import UserManager from "./managers/userManager";
 
+interface Participant {
+  username: string;
+  email: string;
+}
+
 const initializeSocket = (server: any) => {
   const io = new Server(server, {
     cors: { origin: DEV_FRONTEND_URL, methods: ["GET", "POST"] },
@@ -15,40 +20,59 @@ const initializeSocket = (server: any) => {
   io.on("connection", (socket: Socket) => {
     console.log("A user connected");
     const username = socket.handshake.query.username as string;
+    const email = socket.handshake.query.email as string;
     userManager.addUser(username, socket);
 
-    socket.on("joinRoom", ({ roomId, username, isAuthor }) => {
-      console.log(`User ${username} joining room ${roomId} as ${isAuthor}`);
+    socket.on("joinRoom", ({ roomId, username, email, isAuthor }) => {
+      console.log(
+        `User ${username} joining room ${roomId} as ${
+          isAuthor ? "author" : "participant"
+        } with email: ${email}`
+      );
+
+      const participant: Participant = { username, email };
 
       if (!roomManager.roomExists(roomId)) {
         console.log(`Room ${roomId} does not exist, creating...`);
 
         if (isAuthor) {
-          roomManager.createRoom(roomId, username);
+          roomManager.createRoom(roomId, participant);
         } else {
           socket.emit("roomJoinError", { message: "Room does not exist" });
           return;
         }
       }
 
-      if (isAuthor || username === roomManager.getAuthor(roomId)) {
+      const author = roomManager.getAuthor(roomId);
+      if (isAuthor || (author && username === author.username)) {
         socket.join(roomId);
-        roomManager.addParticipant(roomId, username);
+        roomManager.addParticipant(roomId, participant);
         socket.emit("currentParticipants", roomManager.getParticipants(roomId));
         socket.emit("joinRoomSuccess", { roomId });
       } else {
-        roomManager.addJoinRequest(roomId, username);
-        const authorSocket = userManager.getSocket(
-          roomManager.getAuthor(roomId)!
+        // Check for existing join requests
+        const existingRequests = roomManager.getJoinRequests(roomId);
+        const alreadyRequested = existingRequests.some(
+          (req) => req.username === username && req.email === email
         );
-        authorSocket?.emit("joinRequest", { username, roomId });
-        socket.emit("joinRequestPending");
+
+        if (!alreadyRequested) {
+          roomManager.addJoinRequest(roomId, participant);
+          const authorSocket = userManager.getSocket(author!.username);
+          authorSocket?.emit("joinRequest", { username, email, roomId });
+          socket.emit("joinRequestPending");
+        } else {
+          console.log(
+            `Duplicate join request from ${username} for room ${roomId}`
+          );
+        }
       }
     });
 
-    socket.on("approveJoinRequest", ({ roomId, username }) => {
+    socket.on("approveJoinRequest", ({ roomId, username, email }) => {
       console.log(`Approving join request for ${username} in room ${roomId}`);
-      roomManager.addParticipant(roomId, username);
+      const participant: Participant = { username, email };
+      roomManager.addParticipant(roomId, participant);
       const approvedUserSocket = userManager.getSocket(username);
       if (approvedUserSocket) {
         approvedUserSocket.join(roomId);
@@ -58,12 +82,13 @@ const initializeSocket = (server: any) => {
           roomManager.getParticipants(roomId)
         );
       }
-      io.to(roomId).emit("userJoined", { username });
+      io.to(roomId).emit("userJoined", { username, email });
     });
 
-    socket.on("rejectJoinRequest", ({ roomId, username }) => {
+    socket.on("rejectJoinRequest", ({ roomId, username, email }) => {
       console.log(`Rejecting join request for ${username} in room ${roomId}`);
-      roomManager.removeJoinRequest(roomId, username);
+      const participant: Participant = { username, email };
+      roomManager.removeJoinRequest(roomId, participant);
       const rejectedUserSocket = userManager.getSocket(username);
       rejectedUserSocket?.emit("joinRequestRejected", roomId);
     });
@@ -84,12 +109,13 @@ const initializeSocket = (server: any) => {
 
     socket.on("leaveRoom", ({ roomId, username }) => {
       console.log(`${username} leaving room ${roomId}`);
-
       console.log(
-        `Participants in room ${roomId}: ${roomManager.getParticipants(roomId)}`
+        `Participants in room ${roomId}:`,
+        roomManager.getParticipants(roomId)
       );
 
-      if (username === roomManager.getAuthor(roomId)) {
+      const author = roomManager.getAuthor(roomId);
+      if (author && username === author.username) {
         roomManager.deleteRoom(roomId);
         console.log(`Room ${roomId} deleted`);
         io.to(roomId).emit("roomClosed", false);
@@ -108,7 +134,6 @@ const initializeSocket = (server: any) => {
 
     socket.on("codeChange", ({ content, roomId, username }) => {
       console.log(`Code change in room ${roomId} by ${username} : ${content}`);
-
       io.in(roomId).emit("codeUpdate", { content, sender: username });
     });
 
@@ -117,7 +142,7 @@ const initializeSocket = (server: any) => {
 
       // Find all rooms where this user is the author
       for (const [roomId, author] of roomManager.roomAuthors.entries()) {
-        if (author === username) {
+        if (author.username === username) {
           console.log(
             `Deleting room ${roomId} as author ${username} disconnected`
           );
@@ -131,9 +156,9 @@ const initializeSocket = (server: any) => {
     });
 
     // Implement chat feature
-    socket.on("sendMessage", ({ roomId, message, sender }) => {
-      console.log(`Message from ${sender} in room ${roomId}: ${message}`);
-      io.to(roomId).emit("newMessage", { sender, message });
+    socket.on("sendMessage", ({ roomId, message, sender, timestamp }) => {
+      console.log(`Message from ${sender} in room ${roomId}: ${message} at ${timestamp}`);
+      io.to(roomId).emit("newMessage", { sender, message, timestamp });
     });
   });
 

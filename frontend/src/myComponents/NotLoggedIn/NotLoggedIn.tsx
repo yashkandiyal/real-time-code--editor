@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "../../shadcn/components/ui/button";
 import socketService from "../../services/SocketService";
 import toast from "react-hot-toast";
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth, useUser } from "@clerk/clerk-react";
 import {
   Card,
   CardHeader,
@@ -17,7 +17,6 @@ import {
   LuAlertCircle as AlertCircle,
   LuHome as Home,
   LuLogIn as LogIn,
-  LuUserPlus as UserPlus,
 } from "react-icons/lu";
 import UsernameModal from "./UsernameModal";
 
@@ -28,6 +27,17 @@ const NotLoggedIn = () => {
   const [showUsernameModal, setShowUsernameModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const { isSignedIn, isLoaded } = useAuth();
+  const { user } = useUser();
+  const userEmailAddress = user?.emailAddresses?.[0]?.emailAddress || "";
+  const [currentLoggedinUsername, setCurrentLoggedinUsername] = useState<
+    string | null
+  >(null);
+
+  useEffect(() => {
+    if (isSignedIn) {
+      setCurrentLoggedinUsername(user?.fullName || null);
+    }
+  }, [isSignedIn, user]);
 
   useEffect(() => {
     if (roomId) {
@@ -35,11 +45,12 @@ const NotLoggedIn = () => {
       socketService.connect("", false);
       socketService.on("roomStatus", handleRoomStatus);
       socketService.emit("RoomExists", { roomId });
-    }
 
-    return () => {
-      socketService.disconnect();
-    };
+      return () => {
+        socketService.off("roomStatus", handleRoomStatus);
+        socketService.disconnect();
+      };
+    }
   }, [roomId]);
 
   const handleRoomStatus = ({ roomExists }: { roomExists: boolean }) => {
@@ -54,7 +65,7 @@ const NotLoggedIn = () => {
   const handleUsernameSubmit = (username: string) => {
     setShowUsernameModal(false);
     navigate(`/room/${roomId}`, {
-      state: { username, isAuthorr: false },
+      state: { username, authorStatus: false, userEmailAddress },
     });
   };
 
@@ -145,21 +156,12 @@ const NotLoggedIn = () => {
   }
 
   return (
-    <>
-      {renderCard(
-        "Set Your Username",
-        <UserPlus className="h-6 w-6 text-green-500" />,
-        "You're logged in, but you need to set a username before joining the room.",
-        "Set Username",
-        <UserPlus className="h-4 w-4" />,
-        () => setShowUsernameModal(true)
-      )}
-      <UsernameModal
-        isOpen={showUsernameModal}
-        onClose={() => setShowUsernameModal(false)}
-        onSubmit={handleUsernameSubmit}
-      />
-    </>
+    <UsernameModal
+      isOpen={true}
+      onClose={() => setShowUsernameModal(false)}
+      onSubmit={handleUsernameSubmit}
+      currentLoggedinUsername={currentLoggedinUsername!}
+    />
   );
 };
 
