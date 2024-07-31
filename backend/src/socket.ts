@@ -20,9 +20,9 @@ const initializeSocket = (server: any) => {
   io.on("connection", (socket: Socket) => {
     console.log("A user connected");
     const username = socket.handshake.query.username as string;
-    const email = socket.handshake.query.email as string;
     userManager.addUser(username, socket);
 
+    // Join room
     socket.on("joinRoom", ({ roomId, username, email, isAuthor }) => {
       console.log(
         `User ${username} joining room ${roomId} as ${
@@ -31,6 +31,15 @@ const initializeSocket = (server: any) => {
       );
 
       const participant: Participant = { username, email };
+
+      // Check if the user is blocked
+      if (roomManager.isUserBlocked(roomId, email)) {
+        console.log(
+          `User ${username} is blocked from room ${roomId} with email: ${email}`
+        );
+        socket.emit("blockedStatus", { isBlocked: true });
+        return;
+      }
 
       if (!roomManager.roomExists(roomId)) {
         console.log(`Room ${roomId} does not exist, creating...`);
@@ -69,6 +78,40 @@ const initializeSocket = (server: any) => {
       }
     });
 
+    // For adding a user in the blocked list
+    socket.on(
+      "blockUser",
+      ({ roomId, email }: { roomId: string; email: string }) => {
+        console.log("Blocking user: ", email);
+        const isAlreadyBlocked = roomManager.isUserBlocked(roomId, email);
+
+        if (!isAlreadyBlocked) {
+          roomManager.addUserToBlockedList(roomId, email);
+          socket.emit("userBlocked", { email });
+        } else {
+          socket.emit("userAlreadyBlocked", { email });
+        }
+      }
+    );
+
+    // Checking status of the user if he is blocked or not
+    socket.on(
+      "checkBlockedStatus",
+      ({ roomId, email }: { roomId: string; email: string }) => {
+        const isBlocked = roomManager.isUserBlocked(roomId, email);
+
+        if (isBlocked) {
+          console.log(
+            `User with email ${email} is blocked from room ${roomId}`
+          );
+          socket.emit("blockedStatus", { isBlocked: true });
+        } else {
+          socket.emit("blockedStatus", { isBlocked: false });
+        }
+      }
+    );
+
+    // For approving join request
     socket.on("approveJoinRequest", ({ roomId, username, email }) => {
       console.log(`Approving join request for ${username} in room ${roomId}`);
       const participant: Participant = { username, email };
@@ -85,6 +128,7 @@ const initializeSocket = (server: any) => {
       io.to(roomId).emit("userJoined", { username, email });
     });
 
+    // For rejecting join request
     socket.on("rejectJoinRequest", ({ roomId, username, email }) => {
       console.log(`Rejecting join request for ${username} in room ${roomId}`);
       const participant: Participant = { username, email };
@@ -93,6 +137,7 @@ const initializeSocket = (server: any) => {
       rejectedUserSocket?.emit("joinRequestRejected", roomId);
     });
 
+    // For removing participant
     socket.on("removeParticipant", ({ roomId, username }) => {
       console.log(`Removing ${username} from room ${roomId}`);
       const roomDeleted = roomManager.removeParticipant(roomId, username);
@@ -107,6 +152,7 @@ const initializeSocket = (server: any) => {
       }
     });
 
+    // For leaving room
     socket.on("leaveRoom", ({ roomId, username }) => {
       console.log(`${username} leaving room ${roomId}`);
       console.log(
@@ -125,6 +171,7 @@ const initializeSocket = (server: any) => {
       }
     });
 
+    // For checking if room exists
     socket.on("RoomExists", ({ roomId }) => {
       console.log(`Checking if room ${roomId} exists`);
       const status = roomManager.roomExists(roomId);
@@ -132,6 +179,7 @@ const initializeSocket = (server: any) => {
       io.emit("roomStatus", { roomExists: status });
     });
 
+    // For changes in code editor
     socket.on("codeChange", ({ content, roomId, username }) => {
       console.log(`Code change in room ${roomId} by ${username} : ${content}`);
       io.in(roomId).emit("codeUpdate", { content, sender: username });
@@ -157,7 +205,9 @@ const initializeSocket = (server: any) => {
 
     // Implement chat feature
     socket.on("sendMessage", ({ roomId, message, sender, timestamp }) => {
-      console.log(`Message from ${sender} in room ${roomId}: ${message} at ${timestamp}`);
+      console.log(
+        `Message from ${sender} in room ${roomId}: ${message} at ${timestamp}`
+      );
       io.to(roomId).emit("newMessage", { sender, message, timestamp });
     });
   });

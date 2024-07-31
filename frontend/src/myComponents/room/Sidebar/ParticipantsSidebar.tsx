@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from "react";
-import { Button } from "../../shadcn/components/ui/button";
+import React, { useState } from "react";
+import { Button } from "../../../shadcn/components/ui/button";
 import { FaMicrophone, FaMicrophoneSlash, FaTimes } from "react-icons/fa";
-import { Avatar, AvatarFallback } from "../../shadcn/components/ui/avatar";
+import { Avatar, AvatarFallback } from "../../../shadcn/components/ui/avatar";
+import RemoveUserModal from "./RemoveUserModal";
 
 interface Participant {
   username: string;
@@ -21,39 +22,27 @@ const ParticipantsSidebar: React.FC<SidebarProps> = ({
   handleRemove,
   currentUser,
 }) => {
-  const [micStates, setMicStates] = useState<{ [key: string]: boolean }>(
+  const [micStates, setMicStates] = useState<Record<string, boolean>>(
     Object.fromEntries(
       participants.map((participant) => [participant.username, true])
     )
   );
-  console.log("participants", participants);
+  const [showRemoveUserModal, setShowRemoveUserModal] =
+    useState<boolean>(false);
+  const [removeUserDetails, setRemoveUserDetails] =
+    useState<Participant | null>(null);
 
   const toggleMic = (username: string) => {
     setMicStates((prev) => ({ ...prev, [username]: !prev[username] }));
   };
 
-  // Check for duplicates
-  const checkForDuplicates = (participants: Participant[]) => {
-    const seen = new Set();
-    const duplicates: Participant[] = [];
-
-    participants.forEach((participant) => {
-      if (seen.has(participant.username)) {
-        duplicates.push(participant);
-      } else {
-        seen.add(participant.username);
-      }
-    });
-
-    return duplicates;
+  const toggleRemoveUserModal = (
+    removeUser: string,
+    removeUserEmail: string
+  ) => {
+    setRemoveUserDetails({ username: removeUser, email: removeUserEmail });
+    setShowRemoveUserModal((prev) => !prev);
   };
-
-  useEffect(() => {
-    const duplicates = checkForDuplicates(participants);
-    if (duplicates.length > 0) {
-      console.warn("Duplicate participants found:", duplicates);
-    }
-  }, [participants]);
 
   return (
     <div className="w-full bg-white dark:bg-gray-800 h-full overflow-y-auto border-r border-gray-200 dark:border-gray-700 p-4">
@@ -61,9 +50,9 @@ const ParticipantsSidebar: React.FC<SidebarProps> = ({
         <h2 className="text-2xl font-bold mb-4 text-gray-800 dark:text-gray-200">
           Participants
         </h2>
-        {participants.map((participant, index) => (
+        {participants.map((participant) => (
           <div
-            key={index}
+            key={participant.username}
             className="flex items-center justify-between p-2 bg-gray-100 dark:bg-gray-700 rounded-lg shadow-sm"
           >
             <div className="flex items-center space-x-3">
@@ -95,7 +84,12 @@ const ParticipantsSidebar: React.FC<SidebarProps> = ({
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => handleRemove(participant.username)}
+                  onClick={() =>
+                    toggleRemoveUserModal(
+                      participant.username,
+                      participant.email
+                    )
+                  }
                   className="text-red-500 hover:bg-red-100 dark:hover:bg-red-900"
                 >
                   <FaTimes className="h-4 w-4" />
@@ -104,6 +98,14 @@ const ParticipantsSidebar: React.FC<SidebarProps> = ({
             </div>
           </div>
         ))}
+        {showRemoveUserModal && removeUserDetails && (
+          <RemoveUserModal
+            onClose={() => setShowRemoveUserModal(false)}
+            currentUsername={currentUser}
+            removeUserDetails={removeUserDetails}
+            handleRemove={handleRemove}
+          />
+        )}
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import EditorPage from "./EditorPage/MainEditorPage";
 import Footer from "../Footer/Footer";
-import Sidebar from "./Sidebar";
+import Sidebar from "../room/Sidebar/Sidebar";
 import { Toaster } from "react-hot-toast";
 import { useLocation, useNavigate } from "react-router-dom";
 import Navbar from "../Navbar/Navbar";

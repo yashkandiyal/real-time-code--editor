@@ -29,9 +29,12 @@ const NotLoggedIn = () => {
   const { isSignedIn, isLoaded } = useAuth();
   const { user } = useUser();
   const userEmailAddress = user?.emailAddresses?.[0]?.emailAddress || "";
+  console.log(userEmailAddress);
+
   const [currentLoggedinUsername, setCurrentLoggedinUsername] = useState<
     string | null
   >(null);
+  const [isBlocked, setIsBlocked] = useState(false);
 
   useEffect(() => {
     if (isSignedIn) {
@@ -43,15 +46,35 @@ const NotLoggedIn = () => {
     if (roomId) {
       setLoading(true);
       socketService.connect("", false);
-      socketService.on("roomStatus", handleRoomStatus);
+      socketService.once("roomStatus", handleRoomStatus);
+      socketService.once("joinBlockedUserError", () => {
+        toast.error("You are not allowed to join this room");
+      });
       socketService.emit("RoomExists", { roomId });
 
       return () => {
-        socketService.off("roomStatus", handleRoomStatus);
         socketService.disconnect();
       };
     }
   }, [roomId]);
+
+  useEffect(() => {
+    if (roomExists && isSignedIn) {
+      socketService.once("blockedStatus", handleBlockedStatus);
+      socketService.emit("checkBlockedStatus", {
+        roomId,
+        email: userEmailAddress,
+      });
+    }
+  }, [roomExists, isSignedIn]);
+
+  const handleBlockedStatus = ({ isBlocked }: { isBlocked: boolean }) => {
+    setIsBlocked(isBlocked);
+    setLoading(false);
+    if (isBlocked) {
+      toast.error("You are not allowed to join this room");
+    }
+  };
 
   const handleRoomStatus = ({ roomExists }: { roomExists: boolean }) => {
     setRoomExists(roomExists);
@@ -59,7 +82,6 @@ const NotLoggedIn = () => {
     if (!roomExists) {
       toast.error("Room does not exist or the host has ended the meeting.");
     }
-    socketService.off("roomStatus", handleRoomStatus);
   };
 
   const handleUsernameSubmit = (username: string) => {
@@ -138,6 +160,17 @@ const NotLoggedIn = () => {
       "Room Not Found",
       <AlertCircle className="h-6 w-6 text-red-500" />,
       "The room you are trying to join does not exist or has been ended by the host.",
+      "Go to Home",
+      <Home className="h-4 w-4" />,
+      () => navigate("/")
+    );
+  }
+
+  if (isBlocked) {
+    return renderCard(
+      "Access Denied",
+      <AlertCircle className="h-6 w-6 text-red-500" />,
+      "You are not allowed to join this room.",
       "Go to Home",
       <Home className="h-4 w-4" />,
       () => navigate("/")

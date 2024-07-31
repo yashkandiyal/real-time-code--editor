@@ -32,7 +32,7 @@ const UsernameModal: React.FC<UsernameModalProps> = ({
           <p>You will join the room with the following username:</p>
           <Input
             id="username"
-            value={currentLoggedinUsername}
+            value={currentLoggedinUsername || ""}
             readOnly
             className="cursor-not-allowed"
           />

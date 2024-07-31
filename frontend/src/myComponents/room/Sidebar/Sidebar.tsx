@@ -2,17 +2,16 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import Chat from "./chat";
 import ParticipantsSidebar from "./ParticipantsSidebar";
-interface Participant{
+interface Participant {
   username: string;
   email: string;
-
 }
 interface SidebarProps {
   participants: Participant[];
   isAuthor: boolean;
   handleRemove: (username: string) => void;
   handleInvite: () => void;
-  messages: any; // Replace 'any' with your message type
+  messages: any;
   sendMessage: (message: string) => void;
   currentUser: string;
   sidebarType: "participants" | "messages" | "none";
