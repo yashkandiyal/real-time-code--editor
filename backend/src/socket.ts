@@ -1,5 +1,5 @@
 import { Server, Socket } from "socket.io";
-import { DEV_FRONTEND_URL, PROD_FRONTEND_URL } from "./config/env";
+import { FRONTEND_URL } from "./config/env";
 import RoomManager from "./managers/roomManager";
 import UserManager from "./managers/userManager";
 
@@ -7,8 +7,8 @@ interface Participant {
   username: string;
   email: string;
 }
-const isProduction = process.env.NODE_ENV === "production";
-const frontendUrl = isProduction ? PROD_FRONTEND_URL : DEV_FRONTEND_URL;
+
+const frontendUrl = FRONTEND_URL;
 const initializeSocket = (server: any) => {
   const io = new Server(server, {
     cors: { origin: frontendUrl, methods: ["GET", "POST"] },

@@ -3,11 +3,7 @@ import { io, Socket } from "socket.io-client";
 class SocketService {
   private socket: Socket | null = null;
 
-  private getBackendUrl(): string {
-    return import.meta.env.VITE_NODE_ENV === "production"
-      ? import.meta.env.VITE_PROD_BACKEND_URL
-      : import.meta.env.VITE_DEV_BACKEND_URL;
-  }
+  backeEndUrl = import.meta.env.VITE_BACKEND_URL;
 
   connect(username: string, isAuthor: boolean): Socket {
     if (!this.socket || this.socket.disconnected) {
@@ -19,7 +15,7 @@ class SocketService {
         query: { username, isAuthor },
       };
 
-      this.socket = io(this.getBackendUrl(), options);
+      this.socket = io(this.backeEndUrl, options);
 
       this.socket.on("connect_error", () => {
         console.error("Connection failed, retrying...");
