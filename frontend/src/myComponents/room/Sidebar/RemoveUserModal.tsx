@@ -38,8 +38,6 @@ const RemoveUserModal: React.FC<RemoveUserModalProps> = ({
 
   useEffect(() => {
     const handleUserBlocked = ({ email }: { email: string }) => {
-      console.log(`User ${email} has been blocked`);
-
       toast.error(`User ${email} has been blocked`);
     };
 

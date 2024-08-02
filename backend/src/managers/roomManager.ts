@@ -1,3 +1,5 @@
+import { error } from "console";
+
 interface Participant {
   username: string;
   email: string;
@@ -79,11 +81,32 @@ class RoomManager {
     this.rooms.delete(roomId);
     this.joinRequests.delete(roomId);
     this.roomAuthors.delete(roomId);
-    this.blockedUsers.delete(roomId); 
+    this.blockedUsers.delete(roomId);
   }
 
   getParticipants(roomId: string): Participant[] {
     return Array.from(this.rooms.get(roomId) || []);
+  }
+
+  getUserByEmail(roomId: string, email: string) {
+    if (!roomId || !email) {
+      return;
+    }
+    const isRoomPresent = this.rooms.has(roomId);
+    if (isRoomPresent) {
+      const participants = this.getParticipants(roomId);
+      const user = participants.find((p) => p.email === email);
+      return user;
+    }
+  }
+  isUserInAnyRoom(email: string): string | null {
+    for (const roomId of this.rooms.keys()) {
+      const user = this.getUserByEmail(roomId, email);
+      if (user) {
+        return roomId;
+      }
+    }
+    return null;
   }
 
   getAuthor(roomId: string): Participant | undefined {
@@ -115,7 +138,7 @@ class RoomManager {
   getBlockedUsers(roomId: string): string[] {
     const blockedList = this.blockedUsers.get(roomId);
     console.log("getBlockedUsers: ", blockedList);
-    
+
     return blockedList ? Array.from(blockedList) : [];
   }
 }

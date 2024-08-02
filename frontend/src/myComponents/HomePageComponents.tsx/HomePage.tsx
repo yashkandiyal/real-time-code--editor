@@ -7,7 +7,7 @@ import { CiGlobe } from "react-icons/ci";
 
 export default function HomePage() {
   const { user } = useUser();
-  console.log("user:", user?.fullName);
+
   const currentLoggedinUsername = user?.fullName;
   const userEmailAddress = user?.emailAddresses[0]?.emailAddress;
 

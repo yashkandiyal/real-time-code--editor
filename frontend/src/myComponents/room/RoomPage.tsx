@@ -29,14 +29,6 @@ export default function RoomPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const { username, authorStatus, userEmailAddress } = location.state || {};
-  console.log(
-    "username:",
-    username,
-    "authorStatus:",
-    authorStatus,
-    "userEmailAddress:",
-    userEmailAddress
-  );
 
   const roomId = location.pathname.split("/")[2];
   const currentUsername = useRef<string>(username);
@@ -64,7 +56,7 @@ export default function RoomPage() {
     socketService.connect(username, authorStatus);
     socketService.joinRoom(roomId, username, authorStatus, userEmailAddress);
 
-    socketService.on("currentParticipants", (participants: Participant[]) => {
+    socketService.once("currentParticipants", (participants: Participant[]) => {
       setParticipants(participants);
     });
 
@@ -74,14 +66,14 @@ export default function RoomPage() {
       }
     });
 
-    socketService.on("joinRequestApproved", (approvedRoomId: string) => {
+    socketService.once("joinRequestApproved", (approvedRoomId: string) => {
       if (approvedRoomId === roomId && !authorStatus) {
         setIsPending(false);
         toast.success("Your join request has been approved.");
       }
     });
 
-    socketService.on("joinRequestRejected", (rejectedRoomId: string) => {
+    socketService.once("joinRequestRejected", (rejectedRoomId: string) => {
       if (rejectedRoomId === roomId && !authorStatus) {
         setIsPending(false);
         toast.error("Your join request has been rejected.");
@@ -115,12 +107,12 @@ export default function RoomPage() {
       }
     });
 
-    socketService.on("roomClosed", () => {
+    socketService.once("roomClosed", () => {
       toast.error("The room has been closed.");
       navigate("/");
     });
 
-    socketService.on("youWereRemoved", () => {
+    socketService.once("youWereRemoved", () => {
       toast.error("You have been removed from the room.");
       navigate("/");
     });
@@ -139,7 +131,7 @@ export default function RoomPage() {
       ]);
     });
 
-    socketService.on("disconnect", () => {
+    socketService.once("disconnect", () => {
       toast.error("Disconnected from server");
       navigate("/");
     });
@@ -155,8 +147,6 @@ export default function RoomPage() {
 
   useEffect(() => {
     if (authorStatus && joinRequests.length > 0) {
-      console.log("Join requests received:", joinRequests);
-
       setNotifications((prevNotifications) => {
         const newNotifications = joinRequests.filter(
           (request) =>
@@ -166,14 +156,10 @@ export default function RoomPage() {
             )
         );
 
-        console.log("New notifications:", newNotifications);
-
         return [...prevNotifications, ...newNotifications];
       });
     }
   }, [authorStatus, joinRequests]);
-
-  console.log("user requests:", joinRequests);
 
   const handleApprove = (notification: JoinRequest) => {
     if (authorStatus) {
@@ -230,7 +216,6 @@ export default function RoomPage() {
   };
 
   const handleNotificationApprove = (approvedUser: JoinRequest) => {
-    console.log("Approving user:", approvedUser);
     handleApprove(approvedUser);
 
     setNotifications((prevNotifications) => {
@@ -241,14 +226,11 @@ export default function RoomPage() {
             approvedUser.email !== undefined)
       );
 
-      console.log("Updated Notifications after approve:", updatedNotifications);
-
       return updatedNotifications;
     });
   };
 
   const handleNotificationReject = (rejectedUser: JoinRequest) => {
-    console.log("Rejecting user:", rejectedUser);
     handleReject(rejectedUser);
 
     setNotifications((prevNotifications) => {
@@ -259,14 +241,11 @@ export default function RoomPage() {
             rejectedUser.email !== undefined)
       );
 
-      console.log("Updated Notifications after reject:", updatedNotifications);
-
       return updatedNotifications;
     });
   };
 
   const handleNotificationClose = (closedUser: string) => {
-    console.log("Closing notification for user:", closedUser);
     setNotifications((prevNotifications) =>
       prevNotifications.filter(
         (notification) => notification.username !== closedUser

@@ -11,19 +11,19 @@ import { Input } from "../../shadcn/components/ui/input";
 
 interface UsernameModalProps {
   isOpen: boolean;
-  onClose: () => void;
+
   onSubmit: (username: string) => void;
   currentLoggedinUsername: string;
 }
 
 const UsernameModal: React.FC<UsernameModalProps> = ({
   isOpen,
-  onClose,
+
   onSubmit,
   currentLoggedinUsername,
 }) => {
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Confirm Your Username</DialogTitle>

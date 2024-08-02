@@ -29,7 +29,7 @@ const ExistingRoomPageModal = ({
   userEmailAddress,
 }: ExistingRoomPageModalProps) => {
   const [roomId, setRoomId] = useState<string>("");
-  const [isBlocked, setIsBlocked] = useState(false);
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -61,6 +61,25 @@ const ExistingRoomPageModal = ({
           return;
         }
 
+        // Emit the usersInRoom event
+        socketService.emit("usersInRoom", { roomId });
+
+        // check if the email is already in use in the room
+        socketService.on(
+          "emailInUse",
+          ({ isAlreadyInUse }: { isAlreadyInUse: boolean }) => {
+            if (isAlreadyInUse) {
+              toast.error(
+                "Email is already in use in the room.Please try again with a different email."
+              );
+              return;
+            }
+          }
+        );
+
+        // Handle the currentUsersInRoom event
+     
+
         // Emit checkBlockedStatus event before joining the room
         socketService.emit("checkBlockedStatus", {
           roomId,
@@ -72,7 +91,6 @@ const ExistingRoomPageModal = ({
           "blockedStatus",
           ({ isBlocked }: { isBlocked: boolean }) => {
             if (isBlocked) {
-              setIsBlocked(isBlocked);
               toast.error("You are not allowed to join this room");
               return;
             }
@@ -84,6 +102,9 @@ const ExistingRoomPageModal = ({
               isAuthor: false,
               email: userEmailAddress,
             });
+
+            socketService.off("currentUsersInRoom");
+            socketService.off("emailInUse");
 
             // Redirect if not blocked
             navigate(`/room/${roomId}`, {
@@ -112,7 +133,7 @@ const ExistingRoomPageModal = ({
         <DialogTrigger asChild>
           <Button
             onClick={navigateUserToLogin}
-            className="bg-green-500 hover:bg-green-700 text-white text-xl sm:text-2xl px-4 py-6 rounded-lg"
+            className="bg-green-500 hover:bg-green-700 text-white text-xl sm:text-2xl px-4 py-6 rounded-lg w-full"
           >
             Join an existing Room
           </Button>
@@ -147,9 +168,11 @@ const ExistingRoomPageModal = ({
                 placeholder="Enter your Username"
                 className="col-span-3"
                 value={currentLoggedinUsername}
+                readOnly
               />
             </div>
           </div>
+
           <DialogFooter>
             <Button type="submit" onClick={navigateToRoom}>
               Join

@@ -97,7 +97,7 @@ const NewRoomPageModal = ({
         <DialogTrigger asChild>
           <Button
             onClick={navigateUserToLogin}
-            className="bg-blue-500 hover:bg-blue-700 text-white text-xl sm:text-2xl px-4 py-6 rounded-lg"
+            className="bg-blue-500 hover:bg-blue-700 text-white text-xl sm:text-2xl px-4 py-6 rounded-lg w-full mb-4 sm:mb-0 sm:mr-4"
           >
             Create new room
           </Button>

@@ -21,8 +21,6 @@ const Notification = ({
   onClose,
   show,
 }: NotificationProps) => {
-  console.log("incoming user's data:", username, email);
-
   useEffect(() => {
     if (show) {
       const audio = new Audio("/join.mp3");

@@ -1,5 +1,5 @@
 import { Server, Socket } from "socket.io";
-import { DEV_FRONTEND_URL } from "./config/env";
+import { DEV_FRONTEND_URL, PROD_FRONTEND_URL } from "./config/env";
 import RoomManager from "./managers/roomManager";
 import UserManager from "./managers/userManager";
 
@@ -7,10 +7,11 @@ interface Participant {
   username: string;
   email: string;
 }
-
+const isProduction = process.env.NODE_ENV === "production";
+const frontendUrl = isProduction ? PROD_FRONTEND_URL : DEV_FRONTEND_URL;
 const initializeSocket = (server: any) => {
   const io = new Server(server, {
-    cors: { origin: DEV_FRONTEND_URL, methods: ["GET", "POST"] },
+    cors: { origin: frontendUrl, methods: ["GET", "POST"] },
     transports: ["websocket"],
   });
 
@@ -22,8 +23,8 @@ const initializeSocket = (server: any) => {
     const username = socket.handshake.query.username as string;
     userManager.addUser(username, socket);
 
-    // Join room
-    socket.on("joinRoom", ({ roomId, username, email, isAuthor }) => {
+    // Join room (using .once to only allow a single join per connection)
+    socket.once("joinRoom", ({ roomId, username, email, isAuthor }) => {
       console.log(
         `User ${username} joining room ${roomId} as ${
           isAuthor ? "author" : "participant"
@@ -38,6 +39,13 @@ const initializeSocket = (server: any) => {
           `User ${username} is blocked from room ${roomId} with email: ${email}`
         );
         socket.emit("blockedStatus", { isBlocked: true });
+        return;
+      }
+
+      // check if the email is already being used in the room
+      if (roomManager.getUserByEmail(roomId, email)) {
+        console.log(`Email ${email} is already being used in room ${roomId}`);
+        socket.emit("emailInUse", { isAlreadyInUse: true });
         return;
       }
 
@@ -78,8 +86,15 @@ const initializeSocket = (server: any) => {
       }
     });
 
-    // For adding a user in the blocked list
-    socket.on(
+    socket.once("usersInRoom", ({ roomId }: { roomId: string }) => {
+      if (roomManager.roomExists(roomId)) {
+        const numberOfUsers = roomManager.getParticipants(roomId).length;
+        socket.emit("currentUsersInRoom", { numberOfUsers });
+      }
+    });
+
+    // For blocking a user (using .once to block user only once per connection)
+    socket.once(
       "blockUser",
       ({ roomId, email }: { roomId: string; email: string }) => {
         console.log("Blocking user: ", email);
@@ -94,8 +109,19 @@ const initializeSocket = (server: any) => {
       }
     );
 
-    // Checking status of the user if he is blocked or not
+    // check if the email is already in use in the room
     socket.on(
+      "checkEmailInUse",
+      ({ roomId, email }: { roomId: string; email: string }) => {
+        const isAlreadyInUse = roomManager.getUserByEmail(roomId, email);
+        if (isAlreadyInUse) {
+          socket.emit("emailInUse", { isAlreadyInUse });
+        }
+      }
+    );
+
+    // Checking status of the user if he is blocked or not (once per connection)
+    socket.once(
       "checkBlockedStatus",
       ({ roomId, email }: { roomId: string; email: string }) => {
         const isBlocked = roomManager.isUserBlocked(roomId, email);
@@ -111,8 +137,8 @@ const initializeSocket = (server: any) => {
       }
     );
 
-    // For approving join request
-    socket.on("approveJoinRequest", ({ roomId, username, email }) => {
+    // For approving join request (using .once to approve only once per connection)
+    socket.once("approveJoinRequest", ({ roomId, username, email }) => {
       console.log(`Approving join request for ${username} in room ${roomId}`);
       const participant: Participant = { username, email };
       roomManager.addParticipant(roomId, participant);
@@ -128,8 +154,8 @@ const initializeSocket = (server: any) => {
       io.to(roomId).emit("userJoined", { username, email });
     });
 
-    // For rejecting join request
-    socket.on("rejectJoinRequest", ({ roomId, username, email }) => {
+    // For rejecting join request (using .once to reject only once per connection)
+    socket.once("rejectJoinRequest", ({ roomId, username, email }) => {
       console.log(`Rejecting join request for ${username} in room ${roomId}`);
       const participant: Participant = { username, email };
       roomManager.removeJoinRequest(roomId, participant);
@@ -137,7 +163,7 @@ const initializeSocket = (server: any) => {
       rejectedUserSocket?.emit("joinRequestRejected", roomId);
     });
 
-    // For removing participant
+    // For removing participant (persistent)
     socket.on("removeParticipant", ({ roomId, username }) => {
       console.log(`Removing ${username} from room ${roomId}`);
       const roomDeleted = roomManager.removeParticipant(roomId, username);
@@ -152,7 +178,7 @@ const initializeSocket = (server: any) => {
       }
     });
 
-    // For leaving room
+    // For leaving room (persistent)
     socket.on("leaveRoom", ({ roomId, username }) => {
       console.log(`${username} leaving room ${roomId}`);
       console.log(
@@ -171,7 +197,7 @@ const initializeSocket = (server: any) => {
       }
     });
 
-    // For checking if room exists
+    // For checking if room exists (persistent)
     socket.on("RoomExists", ({ roomId }) => {
       console.log(`Checking if room ${roomId} exists`);
       const status = roomManager.roomExists(roomId);
@@ -179,12 +205,13 @@ const initializeSocket = (server: any) => {
       io.emit("roomStatus", { roomExists: status });
     });
 
-    // For changes in code editor
+    // For changes in code editor (persistent)
     socket.on("codeChange", ({ content, roomId, username }) => {
       console.log(`Code change in room ${roomId} by ${username} : ${content}`);
       io.in(roomId).emit("codeUpdate", { content, sender: username });
     });
 
+    // Handle disconnect (persistent)
     socket.on("disconnect", () => {
       console.log(`User ${username} disconnected`);
 
@@ -203,7 +230,7 @@ const initializeSocket = (server: any) => {
       io.emit("userDisconnected", { username });
     });
 
-    // Implement chat feature
+    // Implement chat feature (persistent)
     socket.on("sendMessage", ({ roomId, message, sender, timestamp }) => {
       console.log(
         `Message from ${sender} in room ${roomId}: ${message} at ${timestamp}`
