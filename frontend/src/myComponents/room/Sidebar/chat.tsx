@@ -30,13 +30,12 @@ const Chat: React.FC<ChatProps> = ({
   currentUser,
   isAuthor,
   toggleMessagePermissions,
-  sidebarType,
+
   toggleSidebar,
 }) => {
   const [newMessage, setNewMessage] = useState("");
   const [allowMessages, setAllowMessages] = useState(true);
   const [pinnedMessages, setPinnedMessages] = useState<Set<string>>(new Set());
-  const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -162,12 +161,7 @@ const Chat: React.FC<ChatProps> = ({
         {messages.map((message) => {
           const messageTime = handleTimestamp(message.timestamp);
           return (
-            <div
-              key={message.id}
-              className="mb-4 relative group"
-              onMouseEnter={() => isAuthor && setHoveredMessageId(message.id)}
-              onMouseLeave={() => isAuthor && setHoveredMessageId(null)}
-            >
+            <div key={message.id} className="mb-4 relative group">
               <div className="flex items-baseline justify-between mb-1">
                 <span className="font-semibold text-sm text-gray-700 dark:text-gray-300">
                   {message.sender === currentUser ? "You" : message.sender}

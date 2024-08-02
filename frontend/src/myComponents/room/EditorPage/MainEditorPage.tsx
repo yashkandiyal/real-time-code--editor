@@ -278,14 +278,13 @@ const EditorPage: React.FC<EditorPageProps> = ({
   const handleRunCode = async () => {
     setIsLoading(true);
     try {
-      const url = "https://judge0-ce.p.rapidapi.com/submissions";
+      const url = import.meta.env.VITE_RUN_CODE_API;
       const options = {
         method: "POST",
         headers: {
           "content-type": "application/json",
-          "x-rapidapi-key":
-            "6027331747msh65aa3864a9cf1cep1efc50jsn6fcc1a7c5249",
-          "x-rapidapi-host": "judge0-ce.p.rapidapi.com",
+          "x-rapidapi-key": import.meta.env.VITE_RUN_CODE_API_KEY,
+          "x-rapidapi-host": import.meta.env.VITE_HOST,
         },
         body: JSON.stringify({
           language_id: languageIds[language],
@@ -311,9 +310,8 @@ const EditorPage: React.FC<EditorPageProps> = ({
           {
             method: "GET",
             headers: {
-              "x-rapidapi-key":
-                "6027331747msh65aa3864a9cf1cep1efc50jsn6fcc1a7c5249",
-              "x-rapidapi-host": "judge0-ce.p.rapidapi.com",
+              "x-rapidapi-key": import.meta.env.VITE_RUN_CODE_API_KEY,
+              "x-rapidapi-host": import.meta.env.VITE_HOST,
             },
           }
         );

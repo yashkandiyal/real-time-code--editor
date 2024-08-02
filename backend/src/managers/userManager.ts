@@ -13,5 +13,6 @@ class UserManager {
   getSocket(username: string): Socket | undefined {
     return this.userSockets.get(username);
   }
+  
 }
 export default UserManager;

@@ -24,12 +24,11 @@ const NotLoggedIn = () => {
   const navigate = useNavigate();
   const { roomId } = useParams();
   const [roomExists, setRoomExists] = useState<boolean | null>(null);
-  const [showUsernameModal, setShowUsernameModal] = useState(false);
+
   const [loading, setLoading] = useState(true);
   const { isSignedIn, isLoaded } = useAuth();
   const { user } = useUser();
   const userEmailAddress = user?.emailAddresses?.[0]?.emailAddress || "";
-  console.log(userEmailAddress);
 
   const [currentLoggedinUsername, setCurrentLoggedinUsername] = useState<
     string | null
@@ -85,7 +84,6 @@ const NotLoggedIn = () => {
   };
 
   const handleUsernameSubmit = (username: string) => {
-    setShowUsernameModal(false);
     navigate(`/room/${roomId}`, {
       state: { username, authorStatus: false, userEmailAddress },
     });
@@ -191,7 +189,6 @@ const NotLoggedIn = () => {
   return (
     <UsernameModal
       isOpen={true}
-      onClose={() => setShowUsernameModal(false)}
       onSubmit={handleUsernameSubmit}
       currentLoggedinUsername={currentLoggedinUsername!}
     />

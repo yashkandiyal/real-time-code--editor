@@ -57,7 +57,7 @@ const Footer: React.FC<FooterProps> = ({
   const [micAccessRequested, setMicAccessRequested] = useState(false);
   const [lastEmojiTime, setLastEmojiTime] = useState<number>(0);
   const [handRaised, setHandRaised] = useState(false);
-  const [showNotification, setShowNotification] = useState(false);
+
   const [showDropdown, setShowDropdown] = useState(false);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
@@ -128,10 +128,8 @@ const Footer: React.FC<FooterProps> = ({
   const toggleHandRaise = () => {
     setHandRaised((prev) => !prev);
     if (!handRaised) {
-      setShowNotification(true);
       const audio = new Audio("/path/to/notification-sound.mp3");
       audio.play();
-      setTimeout(() => setShowNotification(false), 3000);
     }
   };
 
