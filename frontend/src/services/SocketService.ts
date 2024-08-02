@@ -2,8 +2,7 @@ import { io, Socket } from "socket.io-client";
 
 class SocketService {
   private socket: Socket | null = null;
-
-  backeEndUrl = import.meta.env.VITE_BACKEND_URL;
+  private backeEndUrl = import.meta.env.VITE_BACKEND_URL;
 
   connect(username: string, isAuthor: boolean): Socket {
     if (!this.socket || this.socket.disconnected) {
@@ -17,12 +16,22 @@ class SocketService {
 
       this.socket = io(this.backeEndUrl, options);
 
-      this.socket.on("connect_error", () => {
-        console.error("Connection failed, retrying...");
+      this.socket.on("connect", () => {});
+
+      this.socket.on("connect_error", (error) => {
+        console.error("Connection failed, retrying...", error);
       });
 
-      this.socket.on("disconnect", () => {
-        console.error("Disconnected from server");
+      this.socket.on("disconnect", (reason) => {
+        console.error("Disconnected from server", reason);
+      });
+
+      this.socket.on("reconnect_attempt", (attemptNumber) => {
+        console.log(`Reconnection attempt #${attemptNumber}`);
+      });
+
+      this.socket.on("reconnect_failed", () => {
+        console.error("Reconnection failed");
       });
     }
 
@@ -57,13 +66,17 @@ class SocketService {
 
   on(event: string, callback: (data: any) => void): void {
     if (this.socket) {
-      this.socket.on(event, callback);
+      this.socket.on(event, (data) => {
+        callback(data);
+      });
     }
   }
 
   once(event: string, callback: (data: any) => void): void {
     if (this.socket) {
-      this.socket.once(event, callback);
+      this.socket.once(event, (data) => {
+        callback(data);
+      });
     }
   }
 
