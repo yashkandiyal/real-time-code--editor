@@ -12,6 +12,9 @@ const frontendUrl = FRONTEND_URL;
 app.use(cors({ origin: frontendUrl }));
 app.use(express.json());
 connectDB();
+app.get("/", (req, res) => {
+  res.send("API running!");
+});
 
 const server = createServer(app);
 initializeSocket(server);
