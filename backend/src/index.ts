@@ -6,6 +6,7 @@ import { createServer } from "http";
 import { initializeSocket } from "./socket";
 import { FRONTEND_URL, PORT } from "./config/env";
 import { webhookHandler } from "./utils/webhookHandler";
+import bodyParser from "body-parser";
 
 const app = express();
 
@@ -26,7 +27,11 @@ connectDB();
 app.get("/", (req, res) => {
   res.send("API running!");
 });
-app.post("/api/webhooks", webhookHandler);
+app.post(
+  "/api/webhooks",
+  bodyParser.raw({ type: "application/json" }),
+  webhookHandler
+);
 
 const server = createServer(app);
 initializeSocket(server);

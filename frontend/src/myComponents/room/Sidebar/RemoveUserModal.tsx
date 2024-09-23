@@ -37,13 +37,9 @@ const RemoveUserModal: React.FC<RemoveUserModalProps> = ({
   }, [currentUsername]);
 
   useEffect(() => {
-    const handleUserBlocked = ({ email }: { email: string }) => {
-      toast.error(`User ${email} has been blocked`);
-    };
+    const handleUserBlocked = ({ email }: { email: string }) => {};
 
-    const handleUserAlreadyBlocked = ({ email }: { email: string }) => {
-      toast.error(`User ${email} is already blocked`);
-    };
+    const handleUserAlreadyBlocked = ({ email }: { email: string }) => {};
 
     socketService.on("userBlocked", handleUserBlocked);
     socketService.on("userAlreadyBlocked", handleUserAlreadyBlocked);

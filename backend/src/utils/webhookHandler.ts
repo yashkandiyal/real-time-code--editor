@@ -1,7 +1,7 @@
 import { Webhook } from "svix";
 import { Request, Response } from "express";
 import { WEBHOOK_SECRET } from "../config/env";
-import User from "../models/user.model"; 
+import User from "../models/user.model";
 
 export const webhookHandler = async (req: Request, res: Response) => {
   if (!WEBHOOK_SECRET) {
